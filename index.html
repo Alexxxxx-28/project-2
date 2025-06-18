@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farming Simulator</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #e6ffe6; margin: 0; padding: 0; }
+        .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #aaa; padding: 24px; }
+        h1 { text-align: center; }
+        .field { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; }
+        .plot { width: 60px; height: 60px; background: #b3e6b3; border: 2px solid #6c9e6c; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 24px; transition: background 0.2s; }
+        .plot.empty { background: #b3e6b3; }
+        .plot.wheat-planted { background: #ffe066; }
+        .plot.wheat-grown { background: #ffb347; }
+        .plot.carrot-planted { background: #f9c784; }
+        .plot.carrot-grown { background: #ff914d; }
+        .plot.tomato-planted { background: #ffb3b3; }
+        .plot.tomato-grown { background: #ff4d4d; }
+        .controls, .shop, .achievements, .pets, .characters { text-align: center; margin-top: 20px; }
+        button { padding: 8px 16px; font-size: 16px; border-radius: 5px; border: none; background: #4caf50; color: #fff; cursor: pointer; margin: 0 5px; }
+        button:disabled { background: #aaa; }
+        .stats { text-align: center; margin-top: 20px; }
+        .shop { background: #e0ffe0; border-radius: 8px; padding: 10px; margin: 20px 0; }
+        .achievements { background: #fffbe0; border-radius: 8px; padding: 10px; margin: 20px 0; }
+        .pets, .characters { background: #e0f7ff; border-radius: 8px; padding: 10px; margin: 20px 0; }
+        .pet, .character { display: inline-block; margin: 0 10px; font-size: 32px; }
+        .cosmetics { text-align: center; margin-top: 20px; }
+        .field-controls { text-align: center; margin: 20px 0; }
+        .order { background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; padding: 10px; margin: 10px 0; }
+        .energy-bar { margin: 10px auto; width: 300px; height: 24px; background: #eee; border-radius: 12px; overflow: hidden; border: 1px solid #aaa; }
+        .energy-fill { height: 100%; background: linear-gradient(90deg,#4caf50,#a8e063); transition: width 0.3s; }
+        .player { text-align: center; font-size: 40px; margin: 10px 0; }
+        .recipes { background: #fff0e0; border-radius: 8px; padding: 10px; margin: 20px 0; }
+        .intro-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center; pointer-events: all; }
+        .intro-modal > div { background: #fff; padding: 32px 24px; border-radius: 12px; max-width: 400px; margin: auto; text-align: center; z-index: 10000; pointer-events: all; }
+        #emojiPicker button { font-size: 28px; margin: 4px; cursor: pointer; z-index: 10001; pointer-events: all; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Farming Simulator</h1>
+        <div class="stats" id="stats"></div>
+        <div class="energy-bar" id="energyBar"></div>
+        <div class="cosmetics" id="cosmetics"></div>
+        <div class="field-controls" id="fieldControls"></div>
+        <div class="field" id="field"></div>
+        <div class="controls">
+            <button onclick="waterCrops()">Water Crops</button>
+            <button onclick="harvestCrops()">Harvest</button>
+            <button onclick="rest()">Rest</button>
+        </div>
+        <div class="recipes" id="recipes"></div>
+        <div class="orders" id="orders"></div>
+        <div class="shop" id="shop"></div>
+        <div class="achievements" id="achievements"></div>
+        <div class="pets" id="pets"></div>
+        <div class="characters" id="characters"></div>
+    </div>
+    <div class="intro-modal" id="introModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#fff;padding:32px 24px;border-radius:12px;max-width:400px;margin:auto;text-align:center;">
+            <div id="introText"></div>
+            <div id="emojiPicker" style="margin-top:20px;"></div>
+        </div>
+    </div>
+    <script>
+        // Crop definitions
+        const crops = {
+            wheat: { name: 'Wheat', emoji: '🌾', seedEmoji: '🌱', price: 5, sell: 10, growTime: 1 },
+            carrot: { name: 'Carrot', emoji: '🥕', seedEmoji: '🌱', price: 10, sell: 20, growTime: 2 },
+            tomato: { name: 'Tomato', emoji: '🍅', seedEmoji: '🌱', price: 15, sell: 30, growTime: 3 },
+            corn: { name: 'Corn', emoji: '🌽', seedEmoji: '🌱', price: 12, sell: 25, growTime: 2 },
+            potato: { name: 'Potato', emoji: '🥔', seedEmoji: '🌱', price: 8, sell: 18, growTime: 2 },
+            lettuce: { name: 'Lettuce', emoji: '🥬', seedEmoji: '🌱', price: 7, sell: 15, growTime: 1 }
+        };
+        // Multiple fields support
+        const numFields = 3;
+        const fieldSize = 25;
+        let fields = Array(numFields).fill(null).map(() => Array(fieldSize).fill(null));
+        let currentField = 0;
+        let growthTimers = Array(numFields).fill(null).map(() => Array(fieldSize).fill(0));
+        // Inventory and state
+        let seeds = { wheat: 3, carrot: 0, tomato: 0, corn: 0, potato: 0, lettuce: 0 };
+        let money = 20;
+        let harvest = 0;
+        let achievements = [];
+        let pets = [];
+        let characters = [];
+        let cosmetics = { hats: [], backgrounds: [], equippedHat: null, equippedBg: null };
+        // Orders system
+        let orders = [];
+        let orderId = 1;
+
+        // Achievements definitions
+        const achievementList = [
+            { id: 'firstHarvest', name: 'First Harvest', desc: 'Harvest your first crop!', unlock: 'pet', pet: '🐶' },
+            { id: 'wheatMaster', name: 'Wheat Master', desc: 'Harvest 10 wheat!', unlock: 'character', character: { emoji: '👩‍🌾', name: 'Farmer Jill', text: 'Keep up the good work!' } },
+            { id: 'carrotKing', name: 'Carrot King', desc: 'Harvest 10 carrots!', unlock: 'pet', pet: '🐰' },
+            { id: 'tomatoTycoon', name: 'Tomato Tycoon', desc: 'Harvest 10 tomatoes!', unlock: 'character', character: { emoji: '👨‍🌾', name: 'Farmer Bob', text: 'Tomatoes are tasty!' } },
+            { id: 'hatCollector', name: 'Hat Collector', desc: 'Fulfill 3 orders!', unlock: 'cosmetic', hat: '🎩' },
+            { id: 'bgMaster', name: 'Background Master', desc: 'Fulfill 5 orders!', unlock: 'cosmetic', background: 'linear-gradient(135deg,#f9d423,#ff4e50)' }
+        ];
+        let cropHarvestCount = { wheat: 0, carrot: 0, tomato: 0, corn: 0, potato: 0, lettuce: 0 };
+        let ordersFulfilled = 0;
+
+        // Recipes system
+        const recipes = [
+            { name: 'Salad', ingredients: { lettuce: 2, tomato: 1 }, emoji: '🥗', energy: 30, price: 40 },
+            { name: 'Veggie Stew', ingredients: { potato: 1, carrot: 1, corn: 1 }, emoji: '🍲', energy: 40, price: 50 },
+            { name: 'Bread', ingredients: { wheat: 3 }, emoji: '🍞', energy: 20, price: 30 },
+            { name: 'Fries', ingredients: { potato: 2 }, emoji: '🍟', energy: 25, price: 35 }
+        ];
+        let cooked = {};
+        recipes.forEach(r => cooked[r.name] = 0);
+
+        function renderFieldControls() {
+            let html = '<b>Fields:</b> ';
+            for (let i = 0; i < numFields; i++) {
+                html += `<button onclick=\"switchField(${i})\" ${i === currentField ? 'disabled' : ''}>Field ${i+1}</button>`;
+            }
+            document.getElementById('fieldControls').innerHTML = html;
+        }
+        function switchField(idx) {
+            currentField = idx;
+            renderAll();
+        }
+        function renderField() {
+            const oldMenu = document.getElementById('seedMenu');
+            if (oldMenu) oldMenu.remove();
+            const fieldDiv = document.getElementById('field');
+            fieldDiv.innerHTML = '';
+            // Render as a 5x5 grid
+            const cols = 5;
+            for (let row = 0; row < 5; row++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.style.display = 'flex';
+                rowDiv.style.justifyContent = 'center';
+                for (let col = 0; col < cols; col++) {
+                    const i = row * cols + col;
+                    let plot = fields[currentField][i];
+                    let plotClass = 'plot empty';
+                    let emoji = '🟩';
+                    if (plot) {
+                        plotClass = `plot ${plot.type}-${plot.stage}`;
+                        if (plot.stage === 'planted') emoji = crops[plot.type].seedEmoji;
+                        else if (plot.stage === 'grown') emoji = crops[plot.type].emoji;
+                    }
+                    // Show player emoji centered in the plot if player is here
+                    let content = (i === player.pos)
+                        ? `<span style='font-size:32px;display:flex;align-items:center;justify-content:center;width:100%;height:100%;'>${player.emoji}</span>`
+                        : emoji;
+                    const plotDiv = document.createElement('div');
+                    plotDiv.className = plotClass;
+                    plotDiv.style.position = 'relative';
+                    plotDiv.innerHTML = content;
+                    plotDiv.onclick = function() { plantSeedPrompt(i); };
+                    rowDiv.appendChild(plotDiv);
+                }
+                fieldDiv.appendChild(rowDiv);
+            }
+        }
+        function renderStats() {
+            document.getElementById('stats').innerHTML = `Money: $${money} | ` + Object.keys(seeds).map(type=>`${crops[type].name} Seeds: ${seeds[type]}`).join(' | ') + ` | Total Harvest: ${harvest}`;
+        }
+        function renderEnergyBar() {
+            const percent = Math.max(0, Math.min(100, player.energy / player.maxEnergy * 100));
+            document.getElementById('energyBar').innerHTML = `<div class='energy-bar'><div class='energy-fill' style='width:${percent}%;'></div></div>Energy: ${player.energy}/${player.maxEnergy}`;
+        }
+        // Remove duplicate keydown listeners and only use one
+        // Remove the .player div rendering, only show player in the field
+        // Update renderField to show player emoji in the correct plot
+        function renderField() {
+            const oldMenu = document.getElementById('seedMenu');
+            if (oldMenu) oldMenu.remove();
+            const fieldDiv = document.getElementById('field');
+            fieldDiv.innerHTML = '';
+            // Render as a 5x5 grid
+            const cols = 5;
+            for (let row = 0; row < 5; row++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.style.display = 'flex';
+                rowDiv.style.justifyContent = 'center';
+                for (let col = 0; col < cols; col++) {
+                    const i = row * cols + col;
+                    let plot = fields[currentField][i];
+                    let plotClass = 'plot empty';
+                    let emoji = '🟩';
+                    if (plot) {
+                        plotClass = `plot ${plot.type}-${plot.stage}`;
+                        if (plot.stage === 'planted') emoji = crops[plot.type].seedEmoji;
+                        else if (plot.stage === 'grown') emoji = crops[plot.type].emoji;
+                    }
+                    // Show player emoji centered in the plot if player is here
+                    let content = (i === player.pos)
+                        ? `<span style='font-size:32px;display:flex;align-items:center;justify-content:center;width:100%;height:100%;'>${player.emoji}</span>`
+                        : emoji;
+                    const plotDiv = document.createElement('div');
+                    plotDiv.className = plotClass;
+                    plotDiv.style.position = 'relative';
+                    plotDiv.innerHTML = content;
+                    plotDiv.onclick = function() { plantSeedPrompt(i); };
+                    rowDiv.appendChild(plotDiv);
+                }
+                fieldDiv.appendChild(rowDiv);
+            }
+        }
+        function renderShop() {
+            let html = '<h3>Seed Shop</h3>';
+            Object.keys(crops).forEach(type => {
+                html += `<div>${crops[type].name} Seed (${crops[type].seedEmoji}): $${crops[type].price} <button onclick=\"buySeed('${type}')\">Buy</button></div>`;
+            });
+            document.getElementById('shop').innerHTML = html;
+        }
+        function renderAchievements() {
+            let html = '<h3>Achievements</h3>';
+            achievementList.forEach(a => {
+                const unlocked = achievements.includes(a.id);
+                html += `<div>${unlocked ? '✅' : '⬜'} <b>${a.name}</b>: ${a.desc}</div>`;
+            });
+            document.getElementById('achievements').innerHTML = html;
+        }
+        function renderPets() {
+            let html = '<h3>Pets</h3>';
+            pets.forEach(pet => {
+                html += `<span class="pet">${pet}</span>`;
+            });
+            document.getElementById('pets').innerHTML = html;
+        }
+        function renderCharacters() {
+            let html = '<h3>Characters</h3>';
+            characters.forEach(char => {
+                html += `<span class="character" onclick=\"talkToCharacter('${char.name}')\">${char.emoji} ${char.name}</span>`;
+            });
+            document.getElementById('characters').innerHTML = html;
+        }
+        function renderCosmetics() {
+            let html = '<h3>Cosmetics</h3>';
+            html += '<div>Hats: ';
+            cosmetics.hats.forEach(hat => {
+                html += `<span style=\"font-size:28px;cursor:pointer;${cosmetics.equippedHat===hat?'border:2px solid #4caf50;':''}\" onclick=\"equipHat('${hat}')\">${hat}</span> `;
+            });
+            html += '</div><div>Backgrounds: ';
+            cosmetics.backgrounds.forEach(bg => {
+                html += `<span style=\"font-size:20px;cursor:pointer;${cosmetics.equippedBg===bg?'border:2px solid #4caf50;':''}\" onclick=\"equipBg('${bg}')\">${bg}</span> `;
+            });
+            html += '</div>';
+            document.getElementById('cosmetics').innerHTML = html;
+            if (cosmetics.equippedBg) document.body.style.background = cosmetics.equippedBg;
+        }
+        function renderOrders() {
+            let html = '<h3>Orders</h3>';
+            if (orders.length === 0) html += '<div>No orders! <button onclick="generateOrder();renderOrders();">New Order</button></div>';
+            orders.forEach(order => {
+                html += `<div class="order">Order #${order.id}: ${order.amount} ${crops[order.type].emoji} ${crops[order.type].name} <button onclick=\"fulfillOrder(${order.id})\">Fulfill</button> (Reward: $${order.reward})</div>`;
+            });
+            document.getElementById('orders').innerHTML = html;
+        }
+        function renderRecipes() {
+            let html = '<h3>Recipes</h3>';
+            recipes.forEach(r => {
+                let canCook = Object.keys(r.ingredients).every(type => cropHarvestCount[type] >= r.ingredients[type]);
+                html += `<div>${r.emoji} <b>${r.name}</b> (${Object.entries(r.ingredients).map(([k,v])=>v+' '+crops[k].emoji).join(', ')}) <button onclick=\"cookRecipe('${r.name}')\" ${canCook?'':'disabled'}>Cook</button> (Energy: +${r.energy}, Sell: $${r.price}) Cooked: ${cooked[r.name]}</div>`;
+            });
+            document.getElementById('recipes').innerHTML = html;
+        }
+        // Emoji options for player
+        const playerEmojis = ['🧑‍🌾','👩‍🌾','👨‍🌾','🦸','🧙','🧑‍🍳','🧑‍🚀','🧑‍🎨','🧑‍🔬','🧑‍💻','🦄','🐱','🐶','🐰','🐻','🐸'];
+        // Show intro modal
+        function showIntro() {
+            document.getElementById('introModal').style.display = 'flex';
+            document.getElementById('introText').innerHTML = `<b>Welcome to Farming Simulator!</b><br><br>I'm <span style='font-size:28px;'>👩‍🌾</span> Farmer Jill. I'll show you how to play.<br><br>Move with the <b>WASD</b> keys. Stand on a plot and click it to plant. Water and harvest crops, fulfill orders, cook recipes, and unlock pets, cosmetics, and more!<br><br>First, choose your character emoji:`;
+            let picker = document.getElementById('emojiPicker');
+            picker.innerHTML = '';
+            playerEmojis.forEach(e => {
+                let btn = document.createElement('button');
+                btn.textContent = e;
+                btn.style.fontSize = '28px';
+                btn.onclick = function() {
+                    player.emoji = e;
+                    document.getElementById('introModal').style.display = 'none';
+                    renderAll();
+                };
+                picker.appendChild(btn);
+            });
+        }
+        // Show intro on first load
+        window.addEventListener('DOMContentLoaded', function() {
+            showIntro();
+        });
+        // Planting with energy and player position (now with selection menu)
+        function plantSeedPrompt(index) {
+            if (fields[currentField][index] || player.energy < 5 || player.pos !== index) return;
+            let options = Object.keys(crops).filter(type => seeds[type] > 0);
+            if (options.length === 0) { alert('No seeds! Buy some in the shop.'); return; }
+            // Show a menu below the plot for seed selection
+            showSeedMenu(index, options);
+        }
+        function showSeedMenu(index, options) {
+            // Remove any existing menu
+            let oldMenu = document.getElementById('seedMenu');
+            if (oldMenu) oldMenu.remove();
+            // Find the plot div
+            const fieldDiv = document.getElementById('field');
+            const plotDivs = fieldDiv.querySelectorAll('.plot');
+            const plotDiv = plotDivs[index];
+            // Create menu
+            const menu = document.createElement('div');
+            menu.id = 'seedMenu';
+            menu.style.position = 'absolute';
+            menu.style.background = '#fff';
+            menu.style.border = '1px solid #aaa';
+            menu.style.borderRadius = '6px';
+            menu.style.padding = '6px';
+            menu.style.zIndex = 10;
+            menu.style.top = (plotDiv.offsetTop + 70) + 'px';
+            menu.style.left = (plotDiv.offsetLeft - 10) + 'px';
+            options.forEach(type => {
+                const btn = document.createElement('button');
+                btn.textContent = crops[type].seedEmoji + ' ' + crops[type].name;
+                btn.onclick = function() {
+                    seeds[type]--;
+                    fields[currentField][index] = { type: type, stage: 'planted', watered: false };
+                    growthTimers[currentField][index] = 0;
+                    player.energy -= 5;
+                    menu.remove();
+                    renderField();
+                    renderStats();
+                    renderEnergyBar();
+                };
+                menu.appendChild(btn);
+            });
+            // Add cancel button
+            const cancel = document.createElement('button');
+            cancel.textContent = 'Cancel';
+            cancel.onclick = function() { menu.remove(); };
+            menu.appendChild(cancel);
+            // Add to container
+            document.querySelector('.container').appendChild(menu);
+        }
+        function renderAll() {
+            renderStats();
+            renderEnergyBar();
+            renderFieldControls();
+            renderField();
+            renderShop();
+            renderOrders();
+            renderRecipes();
+            renderAchievements();
+            renderPets();
+            renderCharacters();
+            renderCosmetics();
+        }
+        // Show intro modal
+        function showIntro() {
+            document.getElementById('introModal').style.display = 'flex';
+            document.getElementById('introText').innerHTML = `<b>Welcome to Farming Simulator!</b><br><br>I'm <span style='font-size:28px;'>👩‍🌾</span> Farmer Jill. I'll show you how to play.<br><br>Move with the <b>WASD</b> keys. Stand on a plot and click it to plant. Water and harvest crops, fulfill orders, cook recipes, and unlock pets, cosmetics, and more!<br><br>First, choose your character emoji:`;
+            let picker = document.getElementById('emojiPicker');
+            picker.innerHTML = '';
+            playerEmojis.forEach(e => {
+                let btn = document.createElement('button');
+                btn.textContent = e;
+                btn.style.fontSize = '28px';
+                btn.onclick = function() {
+                    player.emoji = e;
+                    document.getElementById('introModal').style.display = 'none';
+                    renderAll();
+                };
+                picker.appendChild(btn);
+            });
+        }
+        // Show intro on first load
+        window.addEventListener('DOMContentLoaded', function() {
+            showIntro();
+        });
+        // Planting with energy and player position (now with selection menu)
+        function plantSeedPrompt(index) {
+            if (fields[currentField][index] || player.energy < 5 || player.pos !== index) return;
+            let options = Object.keys(crops).filter(type => seeds[type] > 0);
+            if (options.length === 0) { alert('No seeds! Buy some in the shop.'); return; }
+            // Show a menu below the plot for seed selection
+            showSeedMenu(index, options);
+        }
+        function showSeedMenu(index, options) {
+            // Remove any existing menu
+            let oldMenu = document.getElementById('seedMenu');
+            if (oldMenu) oldMenu.remove();
+            // Find the plot div
+            const fieldDiv = document.getElementById('field');
+            const plotDivs = fieldDiv.querySelectorAll('.plot');
+            const plotDiv = plotDivs[index];
+            // Create menu
+            const menu = document.createElement('div');
+            menu.id = 'seedMenu';
+            menu.style.position = 'absolute';
+            menu.style.background = '#fff';
+            menu.style.border = '1px solid #aaa';
+            menu.style.borderRadius = '6px';
+            menu.style.padding = '6px';
+            menu.style.zIndex = 10;
+            menu.style.top = (plotDiv.offsetTop + 70) + 'px';
+            menu.style.left = (plotDiv.offsetLeft - 10) + 'px';
+            options.forEach(type => {
+                const btn = document.createElement('button');
+                btn.textContent = crops[type].seedEmoji + ' ' + crops[type].name;
+                btn.onclick = function() {
+                    seeds[type]--;
+                    fields[currentField][index] = { type: type, stage: 'planted', watered: false };
+                    growthTimers[currentField][index] = 0;
+                    player.energy -= 5;
+                    menu.remove();
+                    renderField();
+                    renderStats();
+                    renderEnergyBar();
+                };
+                menu.appendChild(btn);
+            });
+            // Add cancel button
+            const cancel = document.createElement('button');
+            cancel.textContent = 'Cancel';
+            cancel.onclick = function() { menu.remove(); };
+            menu.appendChild(cancel);
+            // Add to container
+            document.querySelector('.container').appendChild(menu);
+        }
+        function renderAll() {
+            renderStats();
+            renderEnergyBar();
+            renderFieldControls();
+            renderField();
+            renderShop();
+            renderOrders();
+            renderRecipes();
+            renderAchievements();
+            renderPets();
+            renderCharacters();
+            renderCosmetics();
+        }
+        // Keyboard controls for player movement (WASD only)
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'a' || e.key === 'A') movePlayer('left');
+            if (e.key === 'd' || e.key === 'D') movePlayer('right');
+            if (e.key === 'w' || e.key === 'W') movePlayer('up');
+            if (e.key === 's' || e.key === 'S') movePlayer('down');
+        });
+        let player = { emoji: '', pos: 12, energy: 100, maxEnergy: 100 };
+
+        // Add this function to allow talking to characters
+        function talkToCharacter(name) {
+            const char = characters.find(c => c.name === name);
+            if (char) {
+                alert(char.emoji + ' ' + char.name + ': ' + (char.text || 'Hello!'));
+            }
+        }
+        function movePlayer(direction) {
+            // 5x5 grid, pos is 0-24
+            let row = Math.floor(player.pos / 5);
+            let col = player.pos % 5;
+            if (direction === 'left' && col > 0) col--;
+            if (direction === 'right' && col < 4) col++;
+            if (direction === 'up' && row > 0) row--;
+            if (direction === 'down' && row < 4) row++;
+            player.pos = row * 5 + col;
+            renderField();
+        }
+        // Initial render
+        renderAll();
+    </script>
+</body>
+</html>
