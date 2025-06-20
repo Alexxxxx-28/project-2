@@ -364,17 +364,34 @@
             document.getElementById('inventory').innerHTML = html;
         }
 
+        // Add energy values to crops
+        eachCropEnergy = { wheat: 8, carrot: 12, tomato: 10, corn: 10, potato: 9, lettuce: 7 };
+
+        // Eat crop from inventory
+        function eatCrop(type) {
+            if (inventory[type] > 0) {
+                inventory[type]--;
+                let gain = eachCropEnergy[type] || 5;
+                player.energy = Math.min(player.maxEnergy, player.energy + gain);
+                showNotification(`Ate 1 ${crops[type].name} (+${gain} energy)!`);
+                renderStats();
+                renderEnergyBar();
+                renderInventory();
+                renderSellBin();
+            }
+        }
+
         // Render sell bin UI
         function renderSellBin() {
             let html = '<h3>Sell Bin</h3>';
             let hasAny = false;
             Object.keys(inventory).forEach(type => {
                 if (inventory[type] > 0) {
-                    html += `<div>${crops[type].emoji} <b>${crops[type].name}</b>: ${inventory[type]} <button onclick="sellCrop('${type}')">Sell ($${crops[type].sell} each)</button></div>`;
+                    html += `<div>${crops[type].emoji} <b>${crops[type].name}</b>: ${inventory[type]} <button onclick="sellCrop('${type}')">Sell ($${crops[type].sell} each)</button> <button onclick="eatCrop('${type}')">Eat (+${eachCropEnergy[type] || 5} energy)</button></div>`;
                     hasAny = true;
                 }
             });
-            if (!hasAny) html += '<div>Nothing to sell.</div>';
+            if (!hasAny) html += '<div>Nothing to sell or eat.</div>';
             document.getElementById('sellBin').innerHTML = html;
         }
 
