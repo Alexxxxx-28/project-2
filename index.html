@@ -35,6 +35,7 @@
         .intro-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center; pointer-events: all; }
         .intro-modal > div { background: #fff; padding: 32px 24px; border-radius: 12px; max-width: 400px; margin: auto; text-align: center; z-index: 10000; pointer-events: all; }
         #emojiPicker button { font-size: 28px; margin: 4px; cursor: pointer; z-index: 10001; pointer-events: all; }
+        #notification { display:none; position:fixed; top:30px; left:50%; transform:translateX(-50%); background:#4caf50; color:#fff; padding:12px 32px; border-radius:8px; box-shadow:0 2px 8px #aaa; font-size:18px; z-index:10001; pointer-events:none; transition:opacity 0.4s; }
     </style>
 </head>
 <body>
@@ -69,6 +70,7 @@
             <div id="emojiPicker" style="margin-top:20px;"></div>
         </div>
     </div>
+    <div id="notification" style="display:none;position:fixed;top:30px;left:50%;transform:translateX(-50%);background:#4caf50;color:#fff;padding:12px 32px;border-radius:8px;box-shadow:0 2px 8px #aaa;font-size:18px;z-index:10001;pointer-events:none;transition:opacity 0.4s;"></div>
     <script>
         // Crop definitions
         const crops = {
