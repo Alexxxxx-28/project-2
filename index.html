@@ -56,6 +56,12 @@
         <div class="achievements" id="achievements"></div>
         <div class="pets" id="pets"></div>
         <div class="characters" id="characters"></div>
+        <div id="progressContainer" style="width:300px;margin:20px auto 0 auto;">
+            <div style="font-size:14px;text-align:center;">Progress</div>
+            <div style="background:#eee;border-radius:12px;overflow:hidden;height:20px;">
+                <div id="progressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#2196f3,#21cbf3);transition:width 0.3s;"></div>
+            </div>
+        </div>
     </div>
     <div class="intro-modal" id="introModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
         <div style="background:#fff;padding:32px 24px;border-radius:12px;max-width:400px;margin:auto;text-align:center;">
@@ -456,12 +462,30 @@
             let row = Math.floor(player.pos / 5);
             let col = player.pos % 5;
             if (direction === 'left' && col > 0) col--;
-            if (direction === 'right' && col < 4) col++;
-            if (direction === 'up' && row > 0) row--;
-            if (direction === 'down' && row < 4) row++;
+            else if (direction === 'right' && col < 4) col++;
+            else if (direction === 'up' && row > 0) row--;
+            else if (direction === 'down' && row < 4) row++;
             player.pos = row * 5 + col;
             renderField();
         }
+        // Progress bar animation
+        function animateProgressBar(duration = 3000) {
+            const bar = document.getElementById('progressBar');
+            bar.style.width = '0%';
+            let start = null;
+            function step(timestamp) {
+                if (!start) start = timestamp;
+                let progress = Math.min((timestamp - start) / duration, 1);
+                bar.style.width = (progress * 100) + '%';
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                }
+            }
+            requestAnimationFrame(step);
+        }
+        window.addEventListener('DOMContentLoaded', function() {
+            animateProgressBar();
+        });
         // Initial render
         renderAll();
     </script>
