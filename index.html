@@ -63,6 +63,8 @@
                 <div id="progressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#2196f3,#21cbf3);transition:width 0.3s;pointer-events:none;"></div>
             </div>
         </div>
+        <div id="inventory" style="margin: 20px 0;"></div>
+        <div id="sellBin" style="margin: 20px 0;"></div>
     </div>
     <div class="intro-modal" id="introModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
         <div style="background:#fff;padding:32px 24px;border-radius:12px;max-width:400px;margin:auto;text-align:center;">
@@ -229,8 +231,6 @@
         }
         function renderPets() {
             let html = '<h3>Pets</h3>';
-            pets.forEach(pet => {
-                html += `<span class="pet">${pet}</span>`;
             });
             document.getElementById('pets').innerHTML = html;
         }
@@ -534,24 +534,75 @@
             }, 800);
         }
 
-        // Water all crops in the current field
-        function waterCrops() {
-            let watered = false;
+        // Sparkle animation for grown crops
+        function animateSparkleOnPlot(plotIndex) {
+            const fieldDiv = document.getElementById('field');
+            const plotDivs = fieldDiv.querySelectorAll('.plot');
+            const plotDiv = plotDivs[plotIndex];
+            if (!plotDiv) return;
+            const sparkle = document.createElement('span');
+            sparkle.textContent = '✨';
+            sparkle.style.position = 'absolute';
+            sparkle.style.left = '50%';
+            sparkle.style.top = '10%';
+            sparkle.style.transform = 'translate(-50%, 0)';
+            sparkle.style.fontSize = '26px';
+            sparkle.style.opacity = '1';
+            sparkle.style.transition = 'top 0.7s cubic-bezier(.4,2,.6,1), opacity 0.7s';
+            plotDiv.appendChild(sparkle);
+            setTimeout(() => {
+                sparkle.style.top = '-30px';
+                sparkle.style.opacity = '0';
+            }, 30);
+            setTimeout(() => {
+                sparkle.remove();
+            }, 800);
+        }
+
+        // Grow crops over time (simulate growth for demo)
+        function growCrops() {
+            let anyGrown = false;
             for (let i = 0; i < fieldSize; i++) {
                 let plot = fields[currentField][i];
-                if (plot && plot.stage === 'planted' && !plot.watered) {
-                    plot.watered = true;
-                    watered = true;
-                    animateWaterDropletOnPlot(i);
+                if (plot && plot.stage === 'planted' && plot.watered) {
+                    growthTimers[currentField][i]++;
+                    if (growthTimers[currentField][i] >= crops[plot.type].growTime) {
+                        plot.stage = 'grown';
+                        plot.watered = false;
+                        animateSparkleOnPlot(i);
+                        showNotification(`${crops[plot.type].name} is fully grown!`);
+                        anyGrown = true;
+                    }
                 }
             }
             renderField();
-            if (watered) {
-                showNotification('Crops watered!');
+            return anyGrown;
+        }
+
+        // Harvest all grown crops in the current field
+        function harvestCrops() {
+            let harvested = false;
+            for (let i = 0; i < fieldSize; i++) {
+                let plot = fields[currentField][i];
+                if (plot && plot.stage === 'grown') {
+                    cropHarvestCount[plot.type] = (cropHarvestCount[plot.type] || 0) + 1;
+                    money += crops[plot.type].sell;
+                    harvest++;
+                    fields[currentField][i] = null;
+                    harvested = true;
+                }
+            }
+            renderField();
+            renderStats();
+            if (harvested) {
+                showNotification('Crops harvested!');
             } else {
-                showNotification('No crops to water!');
+                showNotification('No crops to harvest!');
             }
         }
+
+        // Simulate crop growth every 5 seconds
+        timerGrow = setInterval(growCrops, 5000);
     </script>
 </body>
 </html>
