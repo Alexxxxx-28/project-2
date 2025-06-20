@@ -509,6 +509,54 @@
                 showNotification('Not enough money!');
             }
         }
+        // Animate water droplet on a plot
+        function animateWaterDropletOnPlot(plotIndex) {
+            const fieldDiv = document.getElementById('field');
+            const plotDivs = fieldDiv.querySelectorAll('.plot');
+            const plotDiv = plotDivs[plotIndex];
+            if (!plotDiv) return;
+            // Create droplet
+            const droplet = document.createElement('div');
+            droplet.textContent = '💧';
+            droplet.style.position = 'absolute';
+            droplet.style.left = '50%';
+            droplet.style.top = '-30px';
+            droplet.style.transform = 'translateX(-50%)';
+            droplet.style.fontSize = '28px';
+            droplet.style.pointerEvents = 'none';
+            droplet.style.transition = 'top 0.5s cubic-bezier(.4,2,.6,1), opacity 0.3s';
+            droplet.style.opacity = '1';
+            plotDiv.appendChild(droplet);
+            // Animate down
+            setTimeout(() => {
+                droplet.style.top = '18px';
+            }, 10);
+            // Fade out and remove
+            setTimeout(() => {
+                droplet.style.opacity = '0';
+            }, 500);
+            setTimeout(() => {
+                if (droplet.parentNode) droplet.parentNode.removeChild(droplet);
+            }, 800);
+        }
+        // Water crops with animation
+        function waterCrops() {
+            let watered = false;
+            for (let i = 0; i < fieldSize; i++) {
+                let plot = fields[currentField][i];
+                if (plot && plot.stage === 'planted' && !plot.watered) {
+                    plot.watered = true;
+                    animateWaterDropletOnPlot(i);
+                    watered = true;
+                }
+            }
+            if (watered) {
+                showNotification('Crops watered!');
+                renderField(); // re-render to update watered state
+            } else {
+                showNotification('No crops to water!');
+            }
+        }
     </script>
 </body>
 </html>
