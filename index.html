@@ -390,7 +390,49 @@
             }
         }
 
-        // Update harvestCrops to add to inventory instead of selling immediately
+        // Check and unlock achievements
+        function checkAchievements() {
+            achievementList.forEach(a => {
+                if (!achievements.includes(a.id)) {
+                    if (a.id === 'firstHarvest' && harvest >= 1) {
+                        achievements.push(a.id);
+                        if (a.unlock === 'pet') pets.push(a.pet);
+                        showNotification('Achievement unlocked: ' + a.name + '!');
+                    }
+                    if (a.id === 'wheatMaster' && cropHarvestCount.wheat >= 10) {
+                        achievements.push(a.id);
+                        if (a.unlock === 'character') characters.push(a.character);
+                        showNotification('Achievement unlocked: ' + a.name + '!');
+                    }
+                    if (a.id === 'carrotKing' && cropHarvestCount.carrot >= 10) {
+                        achievements.push(a.id);
+                        if (a.unlock === 'pet') pets.push(a.pet);
+                        showNotification('Achievement unlocked: ' + a.name + '!');
+                    }
+                    if (a.id === 'tomatoTycoon' && cropHarvestCount.tomato >= 10) {
+                        achievements.push(a.id);
+                        if (a.unlock === 'character') characters.push(a.character);
+                        showNotification('Achievement unlocked: ' + a.name + '!');
+                    }
+                    if (a.id === 'hatCollector' && ordersFulfilled >= 3) {
+                        achievements.push(a.id);
+                        if (a.unlock === 'cosmetic') cosmetics.hats.push(a.hat);
+                        showNotification('Achievement unlocked: ' + a.name + '!');
+                    }
+                    if (a.id === 'bgMaster' && ordersFulfilled >= 5) {
+                        achievements.push(a.id);
+                        if (a.unlock === 'cosmetic') cosmetics.backgrounds.push(a.background);
+                        showNotification('Achievement unlocked: ' + a.name + '!');
+                    }
+                }
+            });
+            renderAchievements();
+            renderPets();
+            renderCharacters();
+            renderCosmetics();
+        }
+
+        // Update harvestCrops to check achievements
         function harvestCrops() {
             let harvested = false;
             for (let i = 0; i < fieldSize; i++) {
@@ -407,6 +449,7 @@
             renderStats();
             renderInventory();
             renderSellBin();
+            checkAchievements();
             if (harvested) {
                 showNotification('Crops harvested!');
             } else {
@@ -414,58 +457,26 @@
             }
         }
 
-        // Add inventory and sell bin containers to the HTML
-        window.addEventListener('DOMContentLoaded', function() {
-            // ...existing code...
-            const container = document.querySelector('.container');
-            const inventoryDiv = document.createElement('div');
-            inventoryDiv.id = 'inventory';
-            container.insertBefore(inventoryDiv, document.getElementById('field-controls'));
-            const sellBinDiv = document.createElement('div');
-            sellBinDiv.id = 'sellBin';
-            container.appendChild(sellBinDiv);
-            renderInventory();
-            renderSellBin();
-        });
-
-        // Update renderAll to also render inventory and sell bin
-        function renderAll() {
-            renderStats();
-            renderEnergyBar();
-            renderFieldControls();
-            renderField();
-            renderShop();
-            renderOrders();
-            renderRecipes();
-            renderAchievements();
-            renderPets();
-            renderCharacters();
-            renderCosmetics();
-            renderInventory();
-            renderSellBin();
+        // Update fulfillOrder to check achievements (if not already present)
+        function fulfillOrder(id) {
+            const idx = orders.findIndex(o => o.id === id);
+            if (idx === -1) return;
+            const order = orders[idx];
+            if (inventory[order.type] >= order.amount) {
+                inventory[order.type] -= order.amount;
+                money += order.reward;
+                ordersFulfilled++;
+                orders.splice(idx, 1);
+                showNotification('Order fulfilled!');
+                renderStats();
+                renderOrders();
+                renderInventory();
+                renderSellBin();
+                checkAchievements();
+            } else {
+                showNotification('Not enough crops to fulfill order!');
+            }
         }
-        // Show intro modal
-        function showIntro() {
-            document.getElementById('introModal').style.display = 'flex';
-            document.getElementById('introText').innerHTML = `<b>Welcome to Farming Simulator!</b><br><br>I'm <span style='font-size:28px;'>👩‍🌾</span> Farmer Jill. I'll show you how to play.<br><br>Move with the <b>WASD</b> keys. Stand on a plot and click it to plant. Water and harvest crops, fulfill orders, cook recipes, and unlock pets, cosmetics, and more!<br><br>First, choose your character emoji:`;
-            let picker = document.getElementById('emojiPicker');
-            picker.innerHTML = '';
-            playerEmojis.forEach(e => {
-                let btn = document.createElement('button');
-                btn.textContent = e;
-                btn.style.fontSize = '28px';
-                btn.onclick = function() {
-                    player.emoji = e;
-                    document.getElementById('introModal').style.display = 'none';
-                    renderAll();
-                };
-                picker.appendChild(btn);
-            });
-        }
-        // Show intro on first load
-        window.addEventListener('DOMContentLoaded', function() {
-            showIntro();
-        });
         // Planting with energy and player position (now with selection menu)
         function plantSeedPrompt(index) {
             if (fields[currentField][index] || player.energy < 5 || player.pos !== index) return;
