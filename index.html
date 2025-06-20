@@ -490,6 +490,25 @@
         });
         // Initial render
         renderAll();
+        function showNotification(msg) {
+            const n = document.getElementById('notification');
+            n.textContent = msg;
+            n.style.display = 'block';
+            n.style.opacity = '1';
+            setTimeout(() => { n.style.opacity = '0'; }, 1200);
+            setTimeout(() => { n.style.display = 'none'; }, 1600);
+        }
+        function buySeed(type) {
+            if (money >= crops[type].price) {
+                money -= crops[type].price;
+                seeds[type]++;
+                showNotification(`Purchased 1 ${crops[type].name} seed!`);
+                renderStats();
+                renderShop();
+            } else {
+                showNotification('Not enough money!');
+            }
+        }
     </script>
 </body>
 </html>
