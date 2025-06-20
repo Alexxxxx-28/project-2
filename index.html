@@ -231,6 +231,8 @@
         }
         function renderPets() {
             let html = '<h3>Pets</h3>';
+            pets.forEach(pet => {
+                html += `<span class="pet">${pet}</span>`;
             });
             document.getElementById('pets').innerHTML = html;
         }
@@ -345,6 +347,88 @@
             // Add to container
             document.querySelector('.container').appendChild(menu);
         }
+        // Inventory object to track harvested crops
+        let inventory = { wheat: 0, carrot: 0, tomato: 0, corn: 0, potato: 0, lettuce: 0 };
+
+        // Render inventory UI
+        function renderInventory() {
+            let html = '<h3>Inventory</h3>';
+            let hasAny = false;
+            Object.keys(inventory).forEach(type => {
+                if (inventory[type] > 0) {
+                    html += `<div>${crops[type].emoji} <b>${crops[type].name}</b>: ${inventory[type]}</div>`;
+                    hasAny = true;
+                }
+            });
+            if (!hasAny) html += '<div>(Empty)</div>';
+            document.getElementById('inventory').innerHTML = html;
+        }
+
+        // Render sell bin UI
+        function renderSellBin() {
+            let html = '<h3>Sell Bin</h3>';
+            let hasAny = false;
+            Object.keys(inventory).forEach(type => {
+                if (inventory[type] > 0) {
+                    html += `<div>${crops[type].emoji} <b>${crops[type].name}</b>: ${inventory[type]} <button onclick="sellCrop('${type}')">Sell ($${crops[type].sell} each)</button></div>`;
+                    hasAny = true;
+                }
+            });
+            if (!hasAny) html += '<div>Nothing to sell.</div>';
+            document.getElementById('sellBin').innerHTML = html;
+        }
+
+        // Sell crop from inventory
+        function sellCrop(type) {
+            if (inventory[type] > 0) {
+                inventory[type]--;
+                money += crops[type].sell;
+                showNotification(`Sold 1 ${crops[type].name} for $${crops[type].sell}!`);
+                renderStats();
+                renderInventory();
+                renderSellBin();
+            }
+        }
+
+        // Update harvestCrops to add to inventory instead of selling immediately
+        function harvestCrops() {
+            let harvested = false;
+            for (let i = 0; i < fieldSize; i++) {
+                let plot = fields[currentField][i];
+                if (plot && plot.stage === 'grown') {
+                    cropHarvestCount[plot.type] = (cropHarvestCount[plot.type] || 0) + 1;
+                    inventory[plot.type] = (inventory[plot.type] || 0) + 1;
+                    harvest++;
+                    fields[currentField][i] = null;
+                    harvested = true;
+                }
+            }
+            renderField();
+            renderStats();
+            renderInventory();
+            renderSellBin();
+            if (harvested) {
+                showNotification('Crops harvested!');
+            } else {
+                showNotification('No crops to harvest!');
+            }
+        }
+
+        // Add inventory and sell bin containers to the HTML
+        window.addEventListener('DOMContentLoaded', function() {
+            // ...existing code...
+            const container = document.querySelector('.container');
+            const inventoryDiv = document.createElement('div');
+            inventoryDiv.id = 'inventory';
+            container.insertBefore(inventoryDiv, document.getElementById('field-controls'));
+            const sellBinDiv = document.createElement('div');
+            sellBinDiv.id = 'sellBin';
+            container.appendChild(sellBinDiv);
+            renderInventory();
+            renderSellBin();
+        });
+
+        // Update renderAll to also render inventory and sell bin
         function renderAll() {
             renderStats();
             renderEnergyBar();
@@ -357,6 +441,8 @@
             renderPets();
             renderCharacters();
             renderCosmetics();
+            renderInventory();
+            renderSellBin();
         }
         // Show intro modal
         function showIntro() {
@@ -442,6 +528,8 @@
             renderPets();
             renderCharacters();
             renderCosmetics();
+            renderInventory();
+            renderSellBin();
         }
         // Keyboard controls for player movement (WASD only)
         document.addEventListener('keydown', function(e) {
@@ -586,7 +674,7 @@
                 let plot = fields[currentField][i];
                 if (plot && plot.stage === 'grown') {
                     cropHarvestCount[plot.type] = (cropHarvestCount[plot.type] || 0) + 1;
-                    money += crops[plot.type].sell;
+                    inventory[plot.type] = (inventory[plot.type] || 0) + 1;
                     harvest++;
                     fields[currentField][i] = null;
                     harvested = true;
@@ -594,6 +682,8 @@
             }
             renderField();
             renderStats();
+            renderInventory();
+            renderSellBin();
             if (harvested) {
                 showNotification('Crops harvested!');
             } else {
