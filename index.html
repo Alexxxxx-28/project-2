@@ -509,50 +509,45 @@
                 showNotification('Not enough money!');
             }
         }
-        // Animate water droplet on a plot
+        // Water animation for each plot
         function animateWaterDropletOnPlot(plotIndex) {
             const fieldDiv = document.getElementById('field');
             const plotDivs = fieldDiv.querySelectorAll('.plot');
             const plotDiv = plotDivs[plotIndex];
             if (!plotDiv) return;
-            // Create droplet
-            const droplet = document.createElement('div');
+            const droplet = document.createElement('span');
             droplet.textContent = '💧';
             droplet.style.position = 'absolute';
             droplet.style.left = '50%';
-            droplet.style.top = '-30px';
-            droplet.style.transform = 'translateX(-50%)';
+            droplet.style.top = '10%';
+            droplet.style.transform = 'translate(-50%, 0)';
             droplet.style.fontSize = '28px';
-            droplet.style.pointerEvents = 'none';
-            droplet.style.transition = 'top 0.5s cubic-bezier(.4,2,.6,1), opacity 0.3s';
             droplet.style.opacity = '1';
+            droplet.style.transition = 'top 0.7s cubic-bezier(.4,2,.6,1), opacity 0.7s';
             plotDiv.appendChild(droplet);
-            // Animate down
             setTimeout(() => {
-                droplet.style.top = '18px';
-            }, 10);
-            // Fade out and remove
-            setTimeout(() => {
+                droplet.style.top = '-30px';
                 droplet.style.opacity = '0';
-            }, 500);
+            }, 30);
             setTimeout(() => {
-                if (droplet.parentNode) droplet.parentNode.removeChild(droplet);
+                droplet.remove();
             }, 800);
         }
-        // Water crops with animation
+
+        // Water all crops in the current field
         function waterCrops() {
             let watered = false;
             for (let i = 0; i < fieldSize; i++) {
                 let plot = fields[currentField][i];
                 if (plot && plot.stage === 'planted' && !plot.watered) {
                     plot.watered = true;
-                    animateWaterDropletOnPlot(i);
                     watered = true;
+                    animateWaterDropletOnPlot(i);
                 }
             }
+            renderField();
             if (watered) {
                 showNotification('Crops watered!');
-                renderField(); // re-render to update watered state
             } else {
                 showNotification('No crops to water!');
             }
