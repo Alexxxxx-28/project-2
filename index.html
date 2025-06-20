@@ -20,6 +20,11 @@
         .controls, .shop, .achievements, .pets, .characters { text-align: center; margin-top: 20px; }
         button { padding: 8px 16px; font-size: 16px; border-radius: 5px; border: none; background: #4caf50; color: #fff; cursor: pointer; margin: 0 5px; }
         button:disabled { background: #aaa; }
+        button.cook-available {
+            background: #43d15c !important;
+            border: 2px solid #2e8b3a !important;
+            color: #fff;
+        }
         .stats { text-align: center; margin-top: 20px; }
         .shop { background: #e0ffe0; border-radius: 8px; padding: 10px; margin: 20px 0; }
         .achievements { background: #fffbe0; border-radius: 8px; padding: 10px; margin: 20px 0; }
@@ -268,11 +273,15 @@
         function renderRecipes() {
             let html = '<h3>Recipes</h3>';
             recipes.forEach(r => {
-                let canCook = Object.keys(r.ingredients).every(type => cropHarvestCount[type] >= r.ingredients[type]);
-                html += `<div>${r.emoji} <b>${r.name}</b> (${Object.entries(r.ingredients).map(([k,v])=>v+' '+crops[k].emoji).join(', ')}) <button onclick=\"cookRecipe('${r.name}')\" ${canCook?'':'disabled'}>Cook</button> (Energy: +${r.energy}, Sell: $${r.price}) Cooked: ${cooked[r.name]}</div>`;
+                let canCook = Object.entries(r.ingredients).every(([type, amt]) => inventory[type] >= amt);
+                html += `<div>${r.emoji} <b>${r.name}</b> (${Object.entries(r.ingredients).map(([k,v])=>v+' '+crops[k].emoji).join(', ')}) <button class="${canCook ? 'cook-available' : ''}" onclick="cookRecipe('${r.name}')" ${canCook?'':'disabled'}>Cook</button> (Energy: +${r.energy}, Sell: $${r.price}) Cooked: ${cooked[r.name]}</div>`;
             });
             document.getElementById('recipes').innerHTML = html;
         }
+        /* Add CSS for cook-available buttons */
+        const style = document.createElement('style');
+        style.innerHTML = `.cook-available { background: #43c943 !important; color: #fff !important; border: 2px solid #2e7d32 !important; }`;
+        document.head.appendChild(style);
         // Emoji options for player
         const playerEmojis = ['🧑‍🌾','👩‍🌾','👨‍🌾','🦸','🧙','🧑‍🍳','🧑‍🚀','🧑‍🎨','🧑‍🔬','🧑‍💻','🦄','🐱','🐶','🐰','🐻','🐸'];
         // Show intro modal
@@ -715,6 +724,41 @@
 
         // Simulate crop growth every 5 seconds
         timerGrow = setInterval(growCrops, 5000);
+
+        // Cook a recipe if enough ingredients in inventory
+        function cookRecipe(recipeName) {
+            const recipe = recipes.find(r => r.name === recipeName);
+            if (!recipe) return;
+            // Check if enough ingredients in inventory
+            let canCook = Object.entries(recipe.ingredients).every(([type, amt]) => inventory[type] >= amt);
+            if (!canCook) {
+                showNotification('Not enough ingredients!');
+                return;
+            }
+            // Deduct ingredients
+            Object.entries(recipe.ingredients).forEach(([type, amt]) => {
+                inventory[type] -= amt;
+            });
+            cooked[recipe.name] = (cooked[recipe.name] || 0) + 1;
+            player.energy = Math.min(player.maxEnergy, player.energy + recipe.energy);
+            money += recipe.price;
+            showNotification(`Cooked ${recipe.emoji} ${recipe.name}! (+${recipe.energy} energy, +$${recipe.price})`);
+            renderStats();
+            renderEnergyBar();
+            renderInventory();
+            renderSellBin();
+            renderRecipes();
+        }
+
+        // Update renderRecipes to check inventory, not cropHarvestCount
+        function renderRecipes() {
+            let html = '<h3>Recipes</h3>';
+            recipes.forEach(r => {
+                let canCook = Object.entries(r.ingredients).every(([type, amt]) => inventory[type] >= amt);
+                html += `<div>${r.emoji} <b>${r.name}</b> (${Object.entries(r.ingredients).map(([k,v])=>v+' '+crops[k].emoji).join(', ')}) <button class="${canCook ? 'cook-available' : ''}" onclick="cookRecipe('${r.name}')" ${canCook?'':'disabled'}>Cook</button> (Energy: +${r.energy}, Sell: $${r.price}) Cooked: ${cooked[r.name]}</div>`;
+            });
+            document.getElementById('recipes').innerHTML = html;
+        }
     </script>
 </body>
 </html>
