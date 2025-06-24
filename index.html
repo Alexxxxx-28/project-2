@@ -41,44 +41,12 @@
         .intro-modal > div { background: #fff; padding: 32px 24px; border-radius: 12px; max-width: 400px; margin: auto; text-align: center; z-index: 10000; pointer-events: all; }
         #emojiPicker button { font-size: 28px; margin: 4px; cursor: pointer; z-index: 10001; pointer-events: all; }
         #notification { display:none; position:fixed; top:30px; left:50%; transform:translateX(-50%); background:#4caf50; color:#fff; padding:12px 32px; border-radius:8px; box-shadow:0 2px 8px #aaa; font-size:18px; z-index:10001; pointer-events:none; transition:opacity 0.4s; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Farming Simulator</h1>
-        <div class="stats" id="stats"></div>
-        <div class="energy-bar" id="energyBar"></div>
-        <div class="cosmetics" id="cosmetics"></div>
-        <div class="field-controls" id="fieldControls"></div>
-        <div class="field" id="field"></div>
-        <div class="controls">
-            <button onclick="waterCrops()">Water Crops</button>
-            <button onclick="harvestCrops()">Harvest</button>
-            <button onclick="rest()">Rest</button>
-        </div>
-        <div class="recipes" id="recipes"></div>
-        <div class="orders" id="orders"></div>
-        <div class="shop" id="shop"></div>
-        <div class="achievements" id="achievements"></div>
-        <div class="pets" id="pets"></div>
-        <div class="characters" id="characters"></div>
-        <div id="progressContainer" style="width:300px;margin:20px auto 0 auto;pointer-events:none;">
-            <div style="font-size:14px;text-align:center;pointer-events:none;">Progress</div>
-            <div style="background:#eee;border-radius:12px;overflow:hidden;height:20px;pointer-events:none;">
-                <div id="progressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#2196f3,#21cbf3);transition:width 0.3s;pointer-events:none;"></div>
-            </div>
-        </div>
-        <div id="inventory" style="margin: 20px 0;"></div>
-        <div id="sellBin" style="margin: 20px 0;"></div>
-    </div>
-    <div class="intro-modal" id="introModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
-        <div style="background:#fff;padding:32px 24px;border-radius:12px;max-width:400px;margin:auto;text-align:center;">
-            <div id="introText"></div>
-            <div id="emojiPicker" style="margin-top:20px;"></div>
-        </div>
-    </div>
-    <div id="notification" style="display:none;position:fixed;top:30px;left:50%;transform:translateX(-50%);background:#4caf50;color:#fff;padding:12px 32px;border-radius:8px;box-shadow:0 2px 8px #aaa;font-size:18px;z-index:10001;pointer-events:none;transition:opacity 0.4s;"></div>
-    <script>
+        /* Add CSS for cook-available buttons */
+        const style = document.createElement('style');
+        style.innerHTML = `.cook-available { background: #43c943 !important; color: #fff !important; border: 2px solid #2e7d32 !important; }`;
+        document.head.appendChild(style);
+        // Emoji options for player
+        const playerEmojis = ['🧑‍🌾','👩‍🌾','👨‍🌾','🦸','🧙','🧑‍🍳','🧑‍🚀','🧑‍🎨','🧑‍🔬','🧑‍💻','🦄','🐱','🐶','🐰','🐻','🐸'];
         // Crop definitions
         const crops = {
             wheat: { name: 'Wheat', emoji: '🌾', seedEmoji: '🌱', price: 5, sell: 10, growTime: 1 },
@@ -314,36 +282,107 @@
             });
             document.getElementById('recipes').innerHTML = html;
         }
-        /* Add CSS for cook-available buttons */
-        const style = document.createElement('style');
-        style.innerHTML = `.cook-available { background: #43c943 !important; color: #fff !important; border: 2px solid #2e7d32 !important; }`;
-        document.head.appendChild(style);
-        // Emoji options for player
-        const playerEmojis = ['🧑‍🌾','👩‍🌾','👨‍🌾','🦸','🧙','🧑‍🍳','🧑‍🚀','🧑‍🎨','🧑‍🔬','🧑‍💻','🦄','🐱','🐶','🐰','🐻','🐸'];
-        // Show intro modal
-        function showIntro() {
-            document.getElementById('introModal').style.display = 'flex';
-            document.getElementById('introText').innerHTML = `<b>Welcome to Farming Simulator!</b><br><br>I'm <span style='font-size:28px;'>👩‍🌾</span> Farmer Jill. I'll show you how to play.<br><br>Move with the <b>WASD</b> keys. Stand on a plot and click it to plant. Water and harvest crops, fulfill orders, cook recipes, and unlock pets, cosmetics, and more!<br><br>First, choose your character emoji:`;
-            let picker = document.getElementById('emojiPicker');
-            picker.innerHTML = '';
-            playerEmojis.forEach(e => {
-                let btn = document.createElement('button');
-                btn.textContent = e;
-                btn.style.fontSize = '28px';
-                btn.onclick = function() {
-                    player.emoji = e;
-                    document.getElementById('introModal').style.display = 'none';
-                    renderAll();
-                };
-                picker.appendChild(btn);
-            });
+        // Add a modal for cutscenes
+        const cutsceneModal = document.createElement('div');
+        cutsceneModal.id = 'cutsceneModal';
+        cutsceneModal.style.display = 'none';
+        cutsceneModal.style.position = 'fixed';
+        cutsceneModal.style.top = '0';
+        cutsceneModal.style.left = '0';
+        cutsceneModal.style.width = '100vw';
+        cutsceneModal.style.height = '100vh';
+        cutsceneModal.style.background = 'rgba(0,0,0,0.7)';
+        cutsceneModal.style.zIndex = '10002';
+        cutsceneModal.style.alignItems = 'center';
+        cutsceneModal.style.justifyContent = 'center';
+        cutsceneModal.innerHTML = `<div id="cutsceneContent" style="background:#fff;padding:32px 24px;border-radius:12px;max-width:400px;margin:auto;text-align:center;position:relative;"></div>`;
+        document.body.appendChild(cutsceneModal);
+
+        function showCutscene(html, onClose) {
+            document.getElementById('cutsceneContent').innerHTML = html + '<br><br><button onclick="closeCutscene()">Continue</button>';
+            cutsceneModal.style.display = 'flex';
+            cutsceneModal.onCloseCallback = onClose;
         }
-        // Show intro on first load
-        window.addEventListener('DOMContentLoaded', function() {
-            showIntro();
-            // Generate an initial order on game start
-            ensureOrders();
-        });
+        function closeCutscene() {
+            cutsceneModal.style.display = 'none';
+            if (typeof cutsceneModal.onCloseCallback === 'function') cutsceneModal.onCloseCallback();
+        }
+
+        // Add a new recipe to the recipes list if not already present
+        function addRecipe(recipeObj) {
+            if (!recipes.some(r => r.name === recipeObj.name)) {
+                recipes.push(recipeObj);
+                cooked[recipeObj.name] = 0;
+                cookedInventory[recipeObj.name] = 0;
+            }
+        }
+
+        // Check and unlock achievements
+        function checkAchievements() {
+            achievementList.forEach(a => {
+                if (!achievements.includes(a.id)) {
+                    let unlocked = false;
+                    if (a.id === 'firstHarvest' && harvest >= 1) unlocked = true;
+                    if (a.id === 'wheatMaster' && cropHarvestCount.wheat >= 10) unlocked = true;
+                    if (a.id === 'carrotKing' && cropHarvestCount.carrot >= 10) unlocked = true;
+                    if (a.id === 'tomatoTycoon' && cropHarvestCount.tomato >= 10) unlocked = true;
+                    if (a.id === 'hatCollector' && ordersFulfilled >= 3) unlocked = true;
+                    if (a.id === 'bgMaster' && ordersFulfilled >= 5) unlocked = true;
+                    if (unlocked) {
+                        achievements.push(a.id);
+                        if (a.unlock === 'pet') pets.push(a.pet);
+                        if (a.unlock === 'character') {
+                            characters.push(a.character);
+                            // Show cutscene for new character
+                            if (a.character.name === 'Farmer Jill') {
+                                showCutscene(`<span style='font-size:32px;'>${a.character.emoji}</span><br><b>${a.character.name}</b><br><br>Welcome to the farm! I'm here to help you become a great farmer.<br><br>Here, take my special recipe for <b>Berry Pie</b>!`, function() {
+                                    addRecipe({ name: 'Berry Pie', ingredients: { wheat: 2, tomato: 1 }, emoji: '🥧', energy: 35, price: 45 });
+                                    showNotification('New recipe unlocked: Berry Pie!');
+                                    renderRecipes();
+                                });
+                            } else if (a.character.name === 'Farmer Bob') {
+                                showCutscene(`<span style='font-size:32px;'>${a.character.emoji}</span><br><b>${a.character.name}</b><br><br>Tomatoes are tasty! Keep growing and I'll share more tips soon.`);
+                            }
+                        }
+                        if (a.id === 'firstHarvest') {
+                            // Unlock Farmer Jill after first harvest (if not already in characters)
+                            if (!characters.some(c => c.name === 'Farmer Jill')) {
+                                characters.push({ emoji: '👩\u200d🌾', name: 'Farmer Jill', text: 'Welcome to the farm! I\'m here to help.' });
+                                showCutscene(`<span style='font-size:32px;'>👩‍🌾</span><br><b>Farmer Jill</b><br><br>Welcome to the farm! I'm here to help you become a great farmer.<br><br>Here, take my special recipe for <b>Berry Pie</b>!`, function() {
+                                    addRecipe({ name: 'Berry Pie', ingredients: { wheat: 2, tomato: 1 }, emoji: '🥧', energy: 35, price: 45 });
+                                    showNotification('New recipe unlocked: Berry Pie!');
+                                    renderRecipes();
+                                });
+                            }
+                        }
+                        if (a.unlock === 'cosmetic' && a.hat) cosmetics.hats.push(a.hat);
+                        if (a.unlock === 'cosmetic' && a.background) cosmetics.backgrounds.push(a.background);
+                        // Grant rewards and show a single notification
+                        let rewardMsg = `Achievement unlocked: ${a.name}!`;
+                        if (a.reward) {
+                            let rewards = [];
+                            if (a.reward.money) {
+                                money += a.reward.money;
+                                rewards.push(`+$${a.reward.money}`);
+                            }
+                            if (a.reward.seeds) {
+                                Object.entries(a.reward.seeds).forEach(([type, amt]) => {
+                                    seeds[type] = (seeds[type] || 0) + amt;
+                                    rewards.push(`+${amt} ${crops[type].name} seeds`);
+                                });
+                            }
+                            if (rewards.length) rewardMsg += ' ' + rewards.join(', ');
+                        }
+                        showNotification(rewardMsg);
+                    }
+                }
+            });
+            renderAchievements();
+            renderPets();
+            renderCharacters();
+            renderCosmetics();
+        }
+
         // Planting with energy and player position (now with selection menu)
         function plantSeedPrompt(index) {
             if (fields[currentField][index] || player.energy < 5 || player.pos !== index) return;
@@ -394,152 +433,163 @@
             // Add to container
             document.querySelector('.container').appendChild(menu);
         }
-        function renderInventory() {
-            let html = '<h3>Inventory</h3>';
-            let hasAny = false;
-            Object.keys(inventory).forEach(type => {
-                if (inventory[type] > 0) {
-                    html += `<div>${crops[type].emoji} <b>${crops[type].name}</b>: ${inventory[type]}</div>`;
-                    hasAny = true;
-                }
-            });
-            Object.keys(cookedInventory).forEach(name => {
-                if (cookedInventory[name] > 0) {
-                    const recipe = recipes.find(r => r.name === name);
-                    html += `<div>${recipe.emoji} <b>${name}</b>: ${cookedInventory[name]}</div>`;
-                    hasAny = true;
-                }
-            });
-            if (!hasAny) html += '<div>(Empty)</div>';
-            document.getElementById('inventory').innerHTML = html;
-        }
-
-        // Add energy values to crops
-        eachCropEnergy = { wheat: 8, carrot: 12, tomato: 10, corn: 10, potato: 9, lettuce: 7 };
-
-        // Eat crop from inventory
-        function eatCrop(type) {
-            if (inventory[type] > 0) {
-                inventory[type]--;
-                let gain = eachCropEnergy[type] || 5;
-                player.energy = Math.min(player.maxEnergy, player.energy + gain);
-                showNotification(`Ate 1 ${crops[type].name} (+${gain} energy)!`);
-                renderStats();
-                renderEnergyBar();
-                renderInventory();
-                renderSellBin();
-                renderRecipes(); // <-- ensure recipes update after eating
-            }
-        }
-
-        // Render sell bin UI
-        function renderSellBin() {
-            let html = '<h3>Sell Bin</h3>';
-            let hasAny = false;
-            Object.keys(inventory).forEach(type => {
-                if (inventory[type] > 0) {
-                    html += `<div>${crops[type].emoji} <b>${crops[type].name}</b>: ${inventory[type]} <button onclick="sellCrop('${type}')">Sell ($${crops[type].sell} each)</button> <button onclick="eatCrop('${type}')">Eat (+${eachCropEnergy[type] || 5} energy)</button></div>`;
-                    hasAny = true;
-                }
-            });
-            Object.keys(cookedInventory).forEach(name => {
-                if (cookedInventory[name] > 0) {
-                    const recipe = recipes.find(r => r.name === name);
-                    html += `<div>${recipe.emoji} <b>${name}</b>: ${cookedInventory[name]} <button onclick="sellCookedFood('${name}')">Sell ($${recipe.price} each)</button> <button onclick="eatCookedFood('${name}')">Eat (+${recipe.energy} energy)</button></div>`;
-                    hasAny = true;
-                }
-            });
-            if (!hasAny) html += '<div>Nothing to sell or eat.</div>';
-            document.getElementById('sellBin').innerHTML = html;
-        }
-
-        // Sell crop from inventory
-        function sellCrop(type) {
-            if (inventory[type] > 0) {
-                inventory[type]--;
-                money += crops[type].sell;
-                showNotification(`Sold 1 ${crops[type].name} for $${crops[type].sell}!`);
-                renderStats();
-                renderInventory();
-                renderSellBin();
-                renderRecipes(); // <-- ensure recipes update after selling
-            }
-        }
-        function sellCookedFood(name) {
-            if (cookedInventory[name] > 0) {
-                cookedInventory[name]--;
-                const recipe = recipes.find(r => r.name === name);
-                money += recipe.price;
-                showNotification(`Sold 1 ${name} for $${recipe.price}!`);
-                renderStats();
-                renderInventory();
-                renderSellBin();
-                renderRecipes();
-                checkAchievements(); // <-- check achievements after selling cooked food
-            }
-        }
-        function eatCookedFood(name) {
-            if (cookedInventory[name] > 0) {
-                cookedInventory[name]--;
-                const recipe = recipes.find(r => r.name === name);
-                player.energy = Math.min(player.maxEnergy, player.energy + recipe.energy);
-                showNotification(`Ate 1 ${name} (+${recipe.energy} energy)!`);
-                renderStats();
-                renderEnergyBar();
-                renderInventory();
-                renderSellBin();
-                renderRecipes();
-                checkAchievements(); // <-- check achievements after eating cooked food
-            }
-        }
-        // Check and unlock achievements
-        function checkAchievements() {
-            achievementList.forEach(a => {
-                if (!achievements.includes(a.id)) {
-                    let unlocked = false;
-                    if (a.id === 'firstHarvest' && harvest >= 1) unlocked = true;
-                    if (a.id === 'wheatMaster' && cropHarvestCount.wheat >= 10) unlocked = true;
-                    if (a.id === 'carrotKing' && cropHarvestCount.carrot >= 10) unlocked = true;
-                    if (a.id === 'tomatoTycoon' && cropHarvestCount.tomato >= 10) unlocked = true;
-                    if (a.id === 'hatCollector' && ordersFulfilled >= 3) unlocked = true;
-                    if (a.id === 'bgMaster' && ordersFulfilled >= 5) unlocked = true;
-                    if (unlocked) {
-                        achievements.push(a.id);
-                        if (a.unlock === 'pet') pets.push(a.pet);
-                        if (a.unlock === 'character') characters.push(a.character);
-                        if (a.id === 'firstHarvest') {
-                            // Unlock Farmer Jill after first harvest
-                            characters.push({ emoji: '👩\u200d🌾', name: 'Farmer Jill', text: 'Welcome to the farm! I\'m here to help.' });
-                        }
-                        if (a.unlock === 'cosmetic' && a.hat) cosmetics.hats.push(a.hat);
-                        if (a.unlock === 'cosmetic' && a.background) cosmetics.backgrounds.push(a.background);
-                        // Grant rewards and show a single notification
-                        let rewardMsg = `Achievement unlocked: ${a.name}!`;
-                        if (a.reward) {
-                            let rewards = [];
-                            if (a.reward.money) {
-                                money += a.reward.money;
-                                rewards.push(`+$${a.reward.money}`);
-                            }
-                            if (a.reward.seeds) {
-                                Object.entries(a.reward.seeds).forEach(([type, amt]) => {
-                                    seeds[type] = (seeds[type] || 0) + amt;
-                                    rewards.push(`+${amt} ${crops[type].name} seeds`);
-                                });
-                            }
-                            if (rewards.length) rewardMsg += ' ' + rewards.join(', ');
-                        }
-                        showNotification(rewardMsg);
-                    }
-                }
-            });
+        function renderAll() {
+            renderStats();
+            renderEnergyBar();
+            renderFieldControls();
+            renderField();
+            renderShop();
+            renderOrders();
+            renderRecipes();
             renderAchievements();
             renderPets();
             renderCharacters();
             renderCosmetics();
+            renderInventory();
+            renderSellBin();
+            renderAvatarAndPetControls();
+        }
+        // Keyboard controls for player movement (WASD only)
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'a' || e.key === 'A') movePlayer('left');
+            if (e.key === 'd' || e.key === 'D') movePlayer('right');
+            if (e.key === 'w' || e.key === 'W') movePlayer('up');
+            if (e.key === 's' || e.key === 'S') movePlayer('down');
+        });
+        let player = { emoji: '', pos: 12, energy: 100, maxEnergy: 100 };
+
+        // Add this function to allow talking to characters
+        function talkToCharacter(name) {
+            const char = characters.find(c => c.name === name);
+            if (char) {
+                alert(char.emoji + ' ' + char.name + ': ' + (char.text || 'Hello!'));
+            }
+        }
+        function movePlayer(direction) {
+            // 5x5 grid, pos is 0-24
+            let row = Math.floor(player.pos / 5);
+            let col = player.pos % 5;
+            if (direction === 'left') {
+                col = (col + 4) % 5; // wrap left
+            } else if (direction === 'right') {
+                col = (col + 1) % 5; // wrap right
+            } else if (direction === 'up') {
+                row = (row + 4) % 5; // wrap up
+            } else if (direction === 'down') {
+                row = (row + 1) % 5; // wrap down
+            }
+            player.pos = row * 5 + col;
+            renderField();
+        }
+        // Progress bar animation
+        function animateProgressBar(duration = 3000) {
+            const bar = document.getElementById('progressBar');
+            bar.style.width = '0%';
+            let start = null;
+            function step(timestamp) {
+                if (!start) start = timestamp;
+                let progress = Math.min((timestamp - start) / duration, 1);
+                bar.style.width = (progress * 100) + '%';
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                }
+            }
+            requestAnimationFrame(step);
+        }
+        // Simulate crop growth every 5 seconds
+        if (typeof timerGrow !== 'undefined') clearInterval(timerGrow);
+        // Shorten timer to 2 seconds for faster gameplay
+        timerGrow = setInterval(growCrops, 2000);
+        window.addEventListener('DOMContentLoaded', function() {
+            animateProgressBar();
+            renderAll();
+        });
+        // Initial render
+        renderAll();
+        function showNotification(msg) {
+            const n = document.getElementById('notification');
+            n.textContent = msg;
+            n.style.display = 'block';
+            n.style.opacity = '1';
+            setTimeout(() => { n.style.opacity = '0'; }, 1200);
+            setTimeout(() => { n.style.display = 'none'; }, 1600);
+        }
+        function buySeed(type) {
+            if (money >= crops[type].price) {
+                money -= crops[type].price;
+                seeds[type]++;
+                showNotification(`Purchased 1 ${crops[type].name} seed!`);
+                renderStats();
+                renderShop();
+            } else {
+                showNotification('Not enough money!');
+            }
+        }
+        // Water animation for each plot
+        function animateWaterDropletOnPlot(plotIndex) {
+            const fieldDiv = document.getElementById('field');
+            const plotDivs = fieldDiv.querySelectorAll('.plot');
+            const plotDiv = plotDivs[plotIndex];
+            if (!plotDiv) return;
+            const droplet = document.createElement('span');
+            droplet.textContent = '💧';
+            droplet.style.position = 'absolute';
+            droplet.style.left = '50%';
+            droplet.style.top = '10%';
+            droplet.style.transform = 'translate(-50%, 0)';
+            droplet.style.fontSize = '28px';
+            droplet.style.opacity = '1';
+            droplet.style.transition = 'top 0.7s cubic-bezier(.4,2,.6,1), opacity 0.7s';
+            plotDiv.appendChild(droplet);
+            setTimeout(() => {
+                droplet.style.top = '-30px';
+                droplet.style.opacity = '0';
+            }, 30);
+            setTimeout(() => {
+                droplet.remove();
+            }, 800);
         }
 
-        // Update harvestCrops to check achievements
+        // Water all crops in the current field
+        function waterCrops() {
+            let watered = false;
+            for (let i = 0; i < fieldSize; i++) {
+                let plot = fields[currentField][i];
+                if (plot && plot.stage === 'planted' && !plot.watered) {
+                    plot.watered = true;
+                    watered = true;
+                    animateWaterDropletOnPlot(i);
+                }
+            }
+            renderField();
+            if (watered) {
+                showNotification('Crops watered!');
+            } else {
+                showNotification('No crops to water!');
+            }
+        }
+
+        // Grow crops over time (simulate growth for demo)
+        function growCrops() {
+            let anyGrown = false;
+            for (let i = 0; i < fieldSize; i++) {
+                let plot = fields[currentField][i];
+                if (plot && plot.stage === 'planted' && plot.watered) {
+                    growthTimers[currentField][i]++;
+                    if (growthTimers[currentField][i] >= crops[plot.type].growTime) {
+                        plot.stage = 'grown';
+                        plot.watered = false;
+                        animateSparkleOnPlot(i);
+                        showNotification(`${crops[plot.type].name} is fully grown!`);
+                        anyGrown = true;
+                    }
+                }
+            }
+            renderField();
+            return anyGrown;
+        }
+
+        // Harvest all grown crops in the current field
         function harvestCrops() {
             let harvested = false;
             for (let i = 0; i < fieldSize; i++) {
@@ -651,6 +701,7 @@
             renderCosmetics();
             renderInventory();
             renderSellBin();
+            renderAvatarAndPetControls();
         }
         // Keyboard controls for player movement (WASD only)
         document.addEventListener('keydown', function(e) {
@@ -672,10 +723,15 @@
             // 5x5 grid, pos is 0-24
             let row = Math.floor(player.pos / 5);
             let col = player.pos % 5;
-            if (direction === 'left' && col > 0) col--;
-            else if (direction === 'right' && col < 4) col++;
-            else if (direction === 'up' && row > 0) row--;
-            else if (direction === 'down' && row < 4) row++;
+            if (direction === 'left') {
+                col = (col + 4) % 5; // wrap left
+            } else if (direction === 'right') {
+                col = (col + 1) % 5; // wrap right
+            } else if (direction === 'up') {
+                row = (row + 4) % 5; // wrap up
+            } else if (direction === 'down') {
+                row = (row + 1) % 5; // wrap down
+            }
             player.pos = row * 5 + col;
             renderField();
         }
@@ -835,6 +891,36 @@
             renderInventory();
             renderSellBin();
             renderRecipes();
+        }
+        function renderAvatarAndPetControls() {
+            let html = '<h3>Avatar & Pet</h3>';
+            // Avatar selection
+            html += '<div><b>Avatar:</b> ';
+            playerEmojis.forEach(e => {
+                html += `<span style="font-size:28px;cursor:pointer;${player.emoji===e?'border:2px solid #2196f3;':''}" onclick="changeAvatar('${e}')">${e}</span> `;
+            });
+            html += '</div>';
+            // Pet equipping
+            html += '<div style="margin-top:10px;"><b>Pet:</b> ';
+            if (pets.length === 0) {
+                html += '<span style="color:#888;">(No pets unlocked)</span>';
+            } else {
+                pets.forEach(pet => {
+                    html += `<span style="font-size:28px;cursor:pointer;${player.equippedPet===pet?'border:2px solid #43a047;':''}" onclick="equipPet('${pet}')">${pet}</span> `;
+                });
+                html += `<span style="font-size:16px;margin-left:8px;cursor:pointer;color:#888;" onclick="equipPet(null)">(Unequip)</span>`;
+            }
+            html += '</div>';
+            document.getElementById('avatarPetControls').innerHTML = html;
+        }
+
+        function changeAvatar(emoji) {
+            player.emoji = emoji;
+            renderAll();
+        }
+        function equipPet(pet) {
+            player.equippedPet = pet;
+            renderAll();
         }
     </script>
 </body>
