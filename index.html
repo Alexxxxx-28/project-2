@@ -108,12 +108,12 @@
 
         // Achievements definitions
         const achievementList = [
-            { id: 'firstHarvest', name: 'First Harvest', desc: 'Harvest your first crop!', unlock: 'pet', pet: '🐶' },
-            { id: 'wheatMaster', name: 'Wheat Master', desc: 'Harvest 10 wheat!', unlock: 'character', character: { emoji: '👩‍🌾', name: 'Farmer Jill', text: 'Keep up the good work!' } },
-            { id: 'carrotKing', name: 'Carrot King', desc: 'Harvest 10 carrots!', unlock: 'pet', pet: '🐰' },
-            { id: 'tomatoTycoon', name: 'Tomato Tycoon', desc: 'Harvest 10 tomatoes!', unlock: 'character', character: { emoji: '👨‍🌾', name: 'Farmer Bob', text: 'Tomatoes are tasty!' } },
-            { id: 'hatCollector', name: 'Hat Collector', desc: 'Fulfill 3 orders!', unlock: 'cosmetic', hat: '🎩' },
-            { id: 'bgMaster', name: 'Background Master', desc: 'Fulfill 5 orders!', unlock: 'cosmetic', background: 'linear-gradient(135deg,#f9d423,#ff4e50)' }
+            { id: 'firstHarvest', name: 'First Harvest', desc: 'Harvest your first crop!', unlock: 'pet', pet: '🐶', reward: { money: 10, seeds: { wheat: 2 } } },
+            { id: 'wheatMaster', name: 'Wheat Master', desc: 'Harvest 10 wheat!', unlock: 'character', character: { emoji: '👩‍🌾', name: 'Farmer Jill', text: 'Keep up the good work!' }, reward: { money: 30, seeds: { wheat: 3 } } },
+            { id: 'carrotKing', name: 'Carrot King', desc: 'Harvest 10 carrots!', unlock: 'pet', pet: '🐰', reward: { money: 30, seeds: { carrot: 3 } } },
+            { id: 'tomatoTycoon', name: 'Tomato Tycoon', desc: 'Harvest 10 tomatoes!', unlock: 'character', character: { emoji: '👨‍🌾', name: 'Farmer Bob', text: 'Tomatoes are tasty!' }, reward: { money: 30, seeds: { tomato: 3 } } },
+            { id: 'hatCollector', name: 'Hat Collector', desc: 'Fulfill 3 orders!', unlock: 'cosmetic', hat: '🎩', reward: { money: 50 } },
+            { id: 'bgMaster', name: 'Background Master', desc: 'Fulfill 5 orders!', unlock: 'cosmetic', background: 'linear-gradient(135deg,#f9d423,#ff4e50)', reward: { money: 100 } }
         ];
         let cropHarvestCount = { wheat: 0, carrot: 0, tomato: 0, corn: 0, potato: 0, lettuce: 0 };
         let ordersFulfilled = 0;
@@ -127,6 +127,11 @@
         ];
         let cooked = {};
         recipes.forEach(r => cooked[r.name] = 0);
+
+        // Inventory object to track harvested crops
+        let inventory = { wheat: 0, carrot: 0, tomato: 0, corn: 0, potato: 0, lettuce: 0 };
+        // Inventory for cooked foods
+        let cookedInventory = { Salad: 0, 'Veggie Stew': 0, Bread: 0, Fries: 0 };
 
         function renderFieldControls() {
             let html = '<b>Fields:</b> ';
@@ -356,16 +361,19 @@
             // Add to container
             document.querySelector('.container').appendChild(menu);
         }
-        // Inventory object to track harvested crops
-        let inventory = { wheat: 0, carrot: 0, tomato: 0, corn: 0, potato: 0, lettuce: 0 };
-
-        // Render inventory UI
         function renderInventory() {
             let html = '<h3>Inventory</h3>';
             let hasAny = false;
             Object.keys(inventory).forEach(type => {
                 if (inventory[type] > 0) {
                     html += `<div>${crops[type].emoji} <b>${crops[type].name}</b>: ${inventory[type]}</div>`;
+                    hasAny = true;
+                }
+            });
+            Object.keys(cookedInventory).forEach(name => {
+                if (cookedInventory[name] > 0) {
+                    const recipe = recipes.find(r => r.name === name);
+                    html += `<div>${recipe.emoji} <b>${name}</b>: ${cookedInventory[name]}</div>`;
                     hasAny = true;
                 }
             });
@@ -387,6 +395,7 @@
                 renderEnergyBar();
                 renderInventory();
                 renderSellBin();
+                renderRecipes(); // <-- ensure recipes update after eating
             }
         }
 
@@ -397,6 +406,13 @@
             Object.keys(inventory).forEach(type => {
                 if (inventory[type] > 0) {
                     html += `<div>${crops[type].emoji} <b>${crops[type].name}</b>: ${inventory[type]} <button onclick="sellCrop('${type}')">Sell ($${crops[type].sell} each)</button> <button onclick="eatCrop('${type}')">Eat (+${eachCropEnergy[type] || 5} energy)</button></div>`;
+                    hasAny = true;
+                }
+            });
+            Object.keys(cookedInventory).forEach(name => {
+                if (cookedInventory[name] > 0) {
+                    const recipe = recipes.find(r => r.name === name);
+                    html += `<div>${recipe.emoji} <b>${name}</b>: ${cookedInventory[name]} <button onclick="sellCookedFood('${name}')">Sell ($${recipe.price} each)</button> <button onclick="eatCookedFood('${name}')">Eat (+${recipe.energy} energy)</button></div>`;
                     hasAny = true;
                 }
             });
@@ -413,42 +429,68 @@
                 renderStats();
                 renderInventory();
                 renderSellBin();
+                renderRecipes(); // <-- ensure recipes update after selling
             }
         }
-
+        function sellCookedFood(name) {
+            if (cookedInventory[name] > 0) {
+                cookedInventory[name]--;
+                const recipe = recipes.find(r => r.name === name);
+                money += recipe.price;
+                showNotification(`Sold 1 ${name} for $${recipe.price}!`);
+                renderStats();
+                renderInventory();
+                renderSellBin();
+                renderRecipes();
+                checkAchievements(); // <-- check achievements after selling cooked food
+            }
+        }
+        function eatCookedFood(name) {
+            if (cookedInventory[name] > 0) {
+                cookedInventory[name]--;
+                const recipe = recipes.find(r => r.name === name);
+                player.energy = Math.min(player.maxEnergy, player.energy + recipe.energy);
+                showNotification(`Ate 1 ${name} (+${recipe.energy} energy)!`);
+                renderStats();
+                renderEnergyBar();
+                renderInventory();
+                renderSellBin();
+                renderRecipes();
+                checkAchievements(); // <-- check achievements after eating cooked food
+            }
+        }
         // Check and unlock achievements
         function checkAchievements() {
             achievementList.forEach(a => {
                 if (!achievements.includes(a.id)) {
-                    if (a.id === 'firstHarvest' && harvest >= 1) {
+                    let unlocked = false;
+                    if (a.id === 'firstHarvest' && harvest >= 1) unlocked = true;
+                    if (a.id === 'wheatMaster' && cropHarvestCount.wheat >= 10) unlocked = true;
+                    if (a.id === 'carrotKing' && cropHarvestCount.carrot >= 10) unlocked = true;
+                    if (a.id === 'tomatoTycoon' && cropHarvestCount.tomato >= 10) unlocked = true;
+                    if (a.id === 'hatCollector' && ordersFulfilled >= 3) unlocked = true;
+                    if (a.id === 'bgMaster' && ordersFulfilled >= 5) unlocked = true;
+                    if (unlocked) {
                         achievements.push(a.id);
                         if (a.unlock === 'pet') pets.push(a.pet);
-                        showNotification('Achievement unlocked: ' + a.name + '!');
-                    }
-                    if (a.id === 'wheatMaster' && cropHarvestCount.wheat >= 10) {
-                        achievements.push(a.id);
                         if (a.unlock === 'character') characters.push(a.character);
-                        showNotification('Achievement unlocked: ' + a.name + '!');
-                    }
-                    if (a.id === 'carrotKing' && cropHarvestCount.carrot >= 10) {
-                        achievements.push(a.id);
-                        if (a.unlock === 'pet') pets.push(a.pet);
-                        showNotification('Achievement unlocked: ' + a.name + '!');
-                    }
-                    if (a.id === 'tomatoTycoon' && cropHarvestCount.tomato >= 10) {
-                        achievements.push(a.id);
-                        if (a.unlock === 'character') characters.push(a.character);
-                        showNotification('Achievement unlocked: ' + a.name + '!');
-                    }
-                    if (a.id === 'hatCollector' && ordersFulfilled >= 3) {
-                        achievements.push(a.id);
-                        if (a.unlock === 'cosmetic') cosmetics.hats.push(a.hat);
-                        showNotification('Achievement unlocked: ' + a.name + '!');
-                    }
-                    if (a.id === 'bgMaster' && ordersFulfilled >= 5) {
-                        achievements.push(a.id);
-                        if (a.unlock === 'cosmetic') cosmetics.backgrounds.push(a.background);
-                        showNotification('Achievement unlocked: ' + a.name + '!');
+                        if (a.unlock === 'cosmetic' && a.hat) cosmetics.hats.push(a.hat);
+                        if (a.unlock === 'cosmetic' && a.background) cosmetics.backgrounds.push(a.background);
+                        // Grant rewards
+                        if (a.reward) {
+                            if (a.reward.money) {
+                                money += a.reward.money;
+                                showNotification('Achievement unlocked: ' + a.name + '! +$' + a.reward.money);
+                            }
+                            if (a.reward.seeds) {
+                                Object.entries(a.reward.seeds).forEach(([type, amt]) => {
+                                    seeds[type] = (seeds[type] || 0) + amt;
+                                    showNotification('Achievement unlocked: ' + a.name + '! +' + amt + ' ' + crops[type].name + ' seeds');
+                                });
+                            }
+                        } else {
+                            showNotification('Achievement unlocked: ' + a.name + '!');
+                        }
                     }
                 }
             });
@@ -475,12 +517,13 @@
             renderStats();
             renderInventory();
             renderSellBin();
-            checkAchievements();
+            renderRecipes(); // <-- ensure recipes update after harvest
             if (harvested) {
                 showNotification('Crops harvested!');
             } else {
                 showNotification('No crops to harvest!');
             }
+            checkAchievements(); // <-- always check achievements after harvest
         }
 
         // Update fulfillOrder to check achievements (if not already present)
@@ -610,8 +653,12 @@
             }
             requestAnimationFrame(step);
         }
+        // Simulate crop growth every 5 seconds
+        if (typeof timerGrow !== 'undefined') clearInterval(timerGrow);
+        var timerGrow = setInterval(growCrops, 5000);
         window.addEventListener('DOMContentLoaded', function() {
             animateProgressBar();
+            renderAll();
         });
         // Initial render
         renderAll();
@@ -715,15 +762,14 @@
             renderStats();
             renderInventory();
             renderSellBin();
+            renderRecipes(); // <-- ensure recipes update after harvest
             if (harvested) {
                 showNotification('Crops harvested!');
             } else {
                 showNotification('No crops to harvest!');
             }
+            checkAchievements(); // <-- always check achievements after harvest
         }
-
-        // Simulate crop growth every 5 seconds
-        timerGrow = setInterval(growCrops, 5000);
 
         // Cook a recipe if enough ingredients in inventory
         function cookRecipe(recipeName) {
@@ -740,24 +786,13 @@
                 inventory[type] -= amt;
             });
             cooked[recipe.name] = (cooked[recipe.name] || 0) + 1;
-            player.energy = Math.min(player.maxEnergy, player.energy + recipe.energy);
-            money += recipe.price;
-            showNotification(`Cooked ${recipe.emoji} ${recipe.name}! (+${recipe.energy} energy, +$${recipe.price})`);
+            cookedInventory[recipe.name] = (cookedInventory[recipe.name] || 0) + 1;
+            showNotification(`Cooked ${recipe.emoji} ${recipe.name}! (Added to inventory)`);
             renderStats();
             renderEnergyBar();
             renderInventory();
             renderSellBin();
             renderRecipes();
-        }
-
-        // Update renderRecipes to check inventory, not cropHarvestCount
-        function renderRecipes() {
-            let html = '<h3>Recipes</h3>';
-            recipes.forEach(r => {
-                let canCook = Object.entries(r.ingredients).every(([type, amt]) => inventory[type] >= amt);
-                html += `<div>${r.emoji} <b>${r.name}</b> (${Object.entries(r.ingredients).map(([k,v])=>v+' '+crops[k].emoji).join(', ')}) <button class="${canCook ? 'cook-available' : ''}" onclick="cookRecipe('${r.name}')" ${canCook?'':'disabled'}>Cook</button> (Energy: +${r.energy}, Sell: $${r.price}) Cooked: ${cooked[r.name]}</div>`;
-            });
-            document.getElementById('recipes').innerHTML = html;
         }
     </script>
 </body>
