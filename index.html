@@ -441,6 +441,21 @@
             html += '</div>';
             document.getElementById('inventory').innerHTML = html;
         }
+        function renderSellBin() {
+            let html = '<h3>Sell Bin</h3>';
+            html += '<div style="color:#888;">(Sell bin feature coming soon!)</div>';
+            const el = document.getElementById('sellBin');
+            if (el) {
+                el.innerHTML = html;
+            } else {
+                // If the element doesn't exist, create it
+                const div = document.createElement('div');
+                div.id = 'sellBin';
+                div.className = 'sell-bin';
+                div.innerHTML = html;
+                document.querySelector('.container').appendChild(div);
+            }
+        }
         function renderAll() {
             renderStats();
             renderEnergyBar();
@@ -472,7 +487,6 @@
         // --- TUTORIAL FIX ---
         function showTutorial(force) {
             if (!localStorage.getItem('tutorialShown') || force) {
-                // Farmer Jill's emoji and name
                 const jillEmoji = '👩‍🌾';
                 const jillName = 'Farmer Jill';
                 // Build avatar picker HTML
@@ -497,19 +511,11 @@
                     <p style='font-size:17px;'>But first, pick your farmer avatar:</p>
                     ${avatarHtml}
                     <div id='avatarError' style='color:#c00;font-size:15px;display:none;margin-bottom:8px;'>Please select an avatar to continue.</div>
+                    <button id='continueTutorialBtn' disabled style='margin-top:10px;'>Continue</button>
                 `;
-                showCutscene(tutorialHtml, function() {
-                    if (!player.emoji || player.emoji === '') {
-                        document.getElementById('avatarError').style.display = 'block';
-                        setTimeout(() => {
-                            showCutscene(tutorialHtml, cutsceneModal.onCloseCallback);
-                            attachAvatarPickerEvents();
-                        }, 100);
-                        return;
-                    }
-                    localStorage.setItem('tutorialShown', 'true');
-                    renderAll();
-                });
+                document.getElementById('cutsceneContent').innerHTML = tutorialHtml;
+                cutsceneModal.style.display = 'flex';
+                // Attach picker events
                 setTimeout(attachAvatarPickerEvents, 100);
                 function attachAvatarPickerEvents() {
                     const picker = document.getElementById('emojiPicker');
@@ -520,9 +526,19 @@
                             Array.from(picker.querySelectorAll('button')).forEach(b => b.style.border = '');
                             btn.style.border = '2px solid #2196f3';
                             document.getElementById('avatarError').style.display = 'none';
+                            document.getElementById('continueTutorialBtn').disabled = false;
                         };
                     });
                 }
+                document.getElementById('continueTutorialBtn').onclick = function() {
+                    if (!player.emoji || player.emoji === '') {
+                        document.getElementById('avatarError').style.display = 'block';
+                        return;
+                    }
+                    localStorage.setItem('tutorialShown', 'true');
+                    cutsceneModal.style.display = 'none';
+                    renderAll();
+                };
             } else {
                 renderAll();
             }
@@ -998,23 +1014,11 @@
                     <p style='font-size:17px;'>But first, pick your farmer avatar:</p>
                     ${avatarHtml}
                     <div id='avatarError' style='color:#c00;font-size:15px;display:none;margin-bottom:8px;'>Please select an avatar to continue.</div>
+                    <button id='continueTutorialBtn' disabled style='margin-top:10px;'>Continue</button>
                 `;
-                showCutscene(tutorialHtml, function() {
-                    // Only allow continue if avatar is selected
-                    if (!player.emoji || player.emoji === '') {
-                        document.getElementById('avatarError').style.display = 'block';
-                        // Prevent closing the cutscene
-                        setTimeout(() => {
-                            showCutscene(tutorialHtml, cutsceneModal.onCloseCallback);
-                            // Re-attach picker events
-                            attachAvatarPickerEvents();
-                        }, 100);
-                        return;
-                    }
-                    localStorage.setItem('tutorialShown', 'true');
-                    renderAll();
-                });
-                // Attach picker events after DOM is updated
+                document.getElementById('cutsceneContent').innerHTML = tutorialHtml;
+                cutsceneModal.style.display = 'flex';
+                // Attach picker events
                 setTimeout(attachAvatarPickerEvents, 100);
                 function attachAvatarPickerEvents() {
                     const picker = document.getElementById('emojiPicker');
@@ -1022,13 +1026,22 @@
                     Array.from(picker.querySelectorAll('button')).forEach(btn => {
                         btn.onclick = function(e) {
                             player.emoji = btn.getAttribute('data-emoji');
-                            // Highlight selection
                             Array.from(picker.querySelectorAll('button')).forEach(b => b.style.border = '');
                             btn.style.border = '2px solid #2196f3';
                             document.getElementById('avatarError').style.display = 'none';
+                            document.getElementById('continueTutorialBtn').disabled = false;
                         };
                     });
                 }
+                document.getElementById('continueTutorialBtn').onclick = function() {
+                    if (!player.emoji || player.emoji === '') {
+                        document.getElementById('avatarError').style.display = 'block';
+                        return;
+                    }
+                    localStorage.setItem('tutorialShown', 'true');
+                    cutsceneModal.style.display = 'none';
+                    renderAll();
+                };
             } else {
                 renderAll();
             }
