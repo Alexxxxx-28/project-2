@@ -519,7 +519,7 @@
         timerGrow = setInterval(growCrops, 2000);
         window.addEventListener('DOMContentLoaded', function() {
             animateProgressBar();
-            renderAll();
+            showTutorial();
             checkAchievements();
         });
         // Initial render
@@ -750,7 +750,7 @@
         timerGrow = setInterval(growCrops, 2000);
         window.addEventListener('DOMContentLoaded', function() {
             animateProgressBar();
-            renderAll();
+            showTutorial();
             checkAchievements();
         });
         // Initial render
@@ -923,14 +923,7 @@
         function showIntro() {
             const visited = localStorage.getItem('visited');
             if (!visited) {
-                // Show Farmer Jill tutorial instead of generic intro
-                showCutscene(
-                    `<span style='font-size:32px;'>👩‍🌾</span><br><b>Farmer Jill</b><br><br>Welcome to the farm! I'm here to help you become a great farmer.<br><br>Use WASD or arrow keys to move. Plant seeds, water crops, and harvest them to earn money!`,
-                    function() {
-                        document.getElementById('introModal').style.display = 'none';
-                        renderAll();
-                    }
-                );
+                document.getElementById('introModal').style.display = 'flex';
                 localStorage.setItem('visited', 'true');
             } else {
                 renderAll();
@@ -966,6 +959,70 @@
             setTimeout(() => {
                 sparkle.remove();
             }, 800);
+        }
+
+        // Show Farmer Jill tutorial and avatar picker on first visit
+        function showTutorial() {
+            if (!localStorage.getItem('tutorialShown')) {
+                // Farmer Jill's emoji and name
+                const jillEmoji = '👩‍🌾';
+                const jillName = 'Farmer Jill';
+                // Build avatar picker HTML
+                let avatarHtml = '<div id="emojiPicker" style="margin:16px 0;">';
+                playerEmojis.forEach(e => {
+                    avatarHtml += `<button type='button' style='font-size:28px;${player.emoji===e?'border:2px solid #2196f3;':''}' data-emoji='${e}'>${e}</button>`;
+                });
+                avatarHtml += '</div>';
+                // Farmer Jill's tutorial message
+                const tutorialHtml = `
+                    <div style='font-size:32px;'>${jillEmoji}</div>
+                    <b>${jillName}</b>
+                    <p style='font-size:18px;'>Howdy, new farmer! I'm Farmer Jill, and I'll show you the ropes.</p>
+                    <ul style='text-align:left;font-size:17px;'>
+                        <li>Use <b>WASD</b> or <b>arrow keys</b> to move your character.</li>
+                        <li>Click a plot (where your character is standing) to plant seeds.</li>
+                        <li>Water crops with the <b>Water Crops</b> button.</li>
+                        <li>Harvest grown crops with the <b>Harvest Crops</b> button.</li>
+                        <li>Buy more seeds in the <b>Seed Shop</b>.</li>
+                        <li>Fulfill orders and unlock achievements!</li>
+                    </ul>
+                    <p style='font-size:17px;'>But first, pick your farmer avatar:</p>
+                    ${avatarHtml}
+                    <div id='avatarError' style='color:#c00;font-size:15px;display:none;margin-bottom:8px;'>Please select an avatar to continue.</div>
+                `;
+                showCutscene(tutorialHtml, function() {
+                    // Only allow continue if avatar is selected
+                    if (!player.emoji || player.emoji === '') {
+                        document.getElementById('avatarError').style.display = 'block';
+                        // Prevent closing the cutscene
+                        setTimeout(() => {
+                            showCutscene(tutorialHtml, cutsceneModal.onCloseCallback);
+                            // Re-attach picker events
+                            attachAvatarPickerEvents();
+                        }, 100);
+                        return;
+                    }
+                    localStorage.setItem('tutorialShown', 'true');
+                    renderAll();
+                });
+                // Attach picker events after DOM is updated
+                setTimeout(attachAvatarPickerEvents, 100);
+                function attachAvatarPickerEvents() {
+                    const picker = document.getElementById('emojiPicker');
+                    if (!picker) return;
+                    Array.from(picker.querySelectorAll('button')).forEach(btn => {
+                        btn.onclick = function(e) {
+                            player.emoji = btn.getAttribute('data-emoji');
+                            // Highlight selection
+                            Array.from(picker.querySelectorAll('button')).forEach(b => b.style.border = '');
+                            btn.style.border = '2px solid #2196f3';
+                            document.getElementById('avatarError').style.display = 'none';
+                        };
+                    });
+                }
+            } else {
+                renderAll();
+            }
         }
     </script>
 </body>
