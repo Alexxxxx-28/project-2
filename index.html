@@ -41,10 +41,49 @@
         .intro-modal > div { background: #fff; padding: 32px 24px; border-radius: 12px; max-width: 400px; margin: auto; text-align: center; z-index: 10000; pointer-events: all; }
         #emojiPicker button { font-size: 28px; margin: 4px; cursor: pointer; z-index: 10001; pointer-events: all; }
         #notification { display:none; position:fixed; top:30px; left:50%; transform:translateX(-50%); background:#4caf50; color:#fff; padding:12px 32px; border-radius:8px; box-shadow:0 2px 8px #aaa; font-size:18px; z-index:10001; pointer-events:none; transition:opacity 0.4s; }
-        /* Add CSS for cook-available buttons */
-        const style = document.createElement('style');
-        style.innerHTML = `.cook-available { background: #43c943 !important; color: #fff !important; border: 2px solid #2e7d32 !important; }`;
-        document.head.appendChild(style);
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Farming Simulator</h1>
+        <div id="notification"></div>
+        <div id="fieldControls" class="field-controls"></div>
+        <div id="field" class="field"></div>
+        <div id="stats" class="stats"></div>
+        <div id="energyBar" class="energy-bar"></div>
+        <div class="controls">
+            <button onclick="waterCrops()">Water Crops</button>
+            <button onclick="harvestCrops()">Harvest Crops</button>
+            <button onclick="showInventory()">Show Inventory</button>
+            <button onclick="showSellBin()">Show Sell Bin</button>
+        </div>
+        <div id="shop" class="shop"></div>
+        <div id="orders" class="orders"></div>
+        <div id="recipes" class="recipes"></div>
+        <div id="achievements" class="achievements"></div>
+        <div id="pets" class="pets"></div>
+        <div id="characters" class="characters"></div>
+        <div id="cosmetics" class="cosmetics"></div>
+        <div id="avatarPetControls"></div>
+        <div id="progressBarContainer" style="margin:20px 0;">
+            <div id="progressBar" style="width:100%;height:8px;background:#4caf50;border-radius:4px;"></div>
+        </div>
+        <div class="field-controls" id="fieldControls"></div>
+        <div class="controls">
+            <button onclick="switchField(0)">Field 1</button>
+            <button onclick="switchField(1)">Field 2</button>
+            <button onclick="switchField(2)">Field 3</button>
+        </div>
+        <div id="seedMenu" style="display:none;position:absolute;background:#fff;border:1px solid #aaa;border-radius:6px;padding:6px;z-index:10;"></div>
+    </div>
+    <div class="intro-modal" id="introModal">
+        <div>
+            <h2>Welcome to Farming Simulator!</h2>
+            <p>Use WASD or arrow keys to move around. Plant seeds, water crops, and harvest them to earn money!</p>
+            <button onclick="closeIntro()">Got it!</button>
+        </div>
+    </div>
+    <script>
         // Emoji options for player
         const playerEmojis = ['🧑‍🌾','👩‍🌾','👨‍🌾','🦸','🧙','🧑‍🍳','🧑‍🚀','🧑‍🎨','🧑‍🔬','🧑‍💻','🦄','🐱','🐶','🐰','🐻','🐸'];
         // Crop definitions
@@ -73,6 +112,9 @@
         // Orders system
         let orders = [];
         let orderId = 1;
+
+        // Add missing variable declaration for player
+        let player = { emoji: '', pos: 12, energy: 100, maxEnergy: 100 };
 
         // Generate a new random order
         function generateOrder() {
@@ -456,31 +498,6 @@
             if (e.key === 'w' || e.key === 'W') movePlayer('up');
             if (e.key === 's' || e.key === 'S') movePlayer('down');
         });
-        let player = { emoji: '', pos: 12, energy: 100, maxEnergy: 100 };
-
-        // Add this function to allow talking to characters
-        function talkToCharacter(name) {
-            const char = characters.find(c => c.name === name);
-            if (char) {
-                alert(char.emoji + ' ' + char.name + ': ' + (char.text || 'Hello!'));
-            }
-        }
-        function movePlayer(direction) {
-            // 5x5 grid, pos is 0-24
-            let row = Math.floor(player.pos / 5);
-            let col = player.pos % 5;
-            if (direction === 'left') {
-                col = (col + 4) % 5; // wrap left
-            } else if (direction === 'right') {
-                col = (col + 1) % 5; // wrap right
-            } else if (direction === 'up') {
-                row = (row + 4) % 5; // wrap up
-            } else if (direction === 'down') {
-                row = (row + 1) % 5; // wrap down
-            }
-            player.pos = row * 5 + col;
-            renderField();
-        }
         // Progress bar animation
         function animateProgressBar(duration = 3000) {
             const bar = document.getElementById('progressBar');
@@ -710,31 +727,6 @@
             if (e.key === 'w' || e.key === 'W') movePlayer('up');
             if (e.key === 's' || e.key === 'S') movePlayer('down');
         });
-        let player = { emoji: '', pos: 12, energy: 100, maxEnergy: 100 };
-
-        // Add this function to allow talking to characters
-        function talkToCharacter(name) {
-            const char = characters.find(c => c.name === name);
-            if (char) {
-                alert(char.emoji + ' ' + char.name + ': ' + (char.text || 'Hello!'));
-            }
-        }
-        function movePlayer(direction) {
-            // 5x5 grid, pos is 0-24
-            let row = Math.floor(player.pos / 5);
-            let col = player.pos % 5;
-            if (direction === 'left') {
-                col = (col + 4) % 5; // wrap left
-            } else if (direction === 'right') {
-                col = (col + 1) % 5; // wrap right
-            } else if (direction === 'up') {
-                row = (row + 4) % 5; // wrap up
-            } else if (direction === 'down') {
-                row = (row + 1) % 5; // wrap down
-            }
-            player.pos = row * 5 + col;
-            renderField();
-        }
         // Progress bar animation
         function animateProgressBar(duration = 3000) {
             const bar = document.getElementById('progressBar');
@@ -922,6 +914,24 @@
             player.equippedPet = pet;
             renderAll();
         }
+
+        // Show intro modal on first visit
+        function showIntro() {
+            const visited = localStorage.getItem('visited');
+            if (!visited) {
+                document.getElementById('introModal').style.display = 'flex';
+                localStorage.setItem('visited', 'true');
+            } else {
+                // If already visited, just render everything
+                renderAll();
+            }
+        }
+        function closeIntro() {
+            document.getElementById('introModal').style.display = 'none';
+            renderAll();
+        }
+        // Show the intro modal on page load
+        window.addEventListener('load', showIntro);
     </script>
 </body>
 </html>
