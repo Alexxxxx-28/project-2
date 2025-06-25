@@ -68,20 +68,12 @@
         <div id="progressBarContainer" style="margin:20px 0;">
             <div id="progressBar" style="width:100%;height:8px;background:#4caf50;border-radius:4px;"></div>
         </div>
-        <div class="field-controls" id="fieldControls"></div>
         <div class="controls">
             <button onclick="switchField(0)">Field 1</button>
             <button onclick="switchField(1)">Field 2</button>
             <button onclick="switchField(2)">Field 3</button>
         </div>
         <div id="seedMenu" style="display:none;position:absolute;background:#fff;border:1px solid #aaa;border-radius:6px;padding:6px;z-index:10;"></div>
-    </div>
-    <div class="intro-modal" id="introModal">
-        <div>
-            <h2>Welcome to Farming Simulator!</h2>
-            <p>Use WASD or arrow keys to move around. Plant seeds, water crops, and harvest them to earn money!</p>
-            <button onclick="closeIntro()">Got it!</button>
-        </div>
     </div>
     <script>
         // Emoji options for player
@@ -918,23 +910,6 @@
             player.equippedPet = pet;
             renderAll();
         }
-
-        // Show intro modal on first visit
-        function showIntro() {
-            const visited = localStorage.getItem('visited');
-            if (!visited) {
-                document.getElementById('introModal').style.display = 'flex';
-                localStorage.setItem('visited', 'true');
-            } else {
-                renderAll();
-            }
-        }
-        function closeIntro() {
-            document.getElementById('introModal').style.display = 'none';
-            renderAll();
-        }
-        // Show the intro modal on page load
-        window.addEventListener('load', showIntro);
 
         // Fix: Add missing animateSparkleOnPlot for grown crops
         function animateSparkleOnPlot(plotIndex) {
