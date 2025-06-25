@@ -114,7 +114,7 @@
         let orderId = 1;
 
         // Add missing variable declaration for player
-        let player = { emoji: '', pos: 12, energy: 100, maxEnergy: 100 };
+        let player = { emoji: '🧑‍🌾', pos: 12, energy: 100, maxEnergy: 100 };
 
         // Generate a new random order
         function generateOrder() {
@@ -520,6 +520,7 @@
         window.addEventListener('DOMContentLoaded', function() {
             animateProgressBar();
             renderAll();
+            checkAchievements();
         });
         // Initial render
         renderAll();
@@ -623,13 +624,14 @@
             renderStats();
             renderInventory();
             renderSellBin();
-            renderRecipes(); // <-- ensure recipes update after harvest
+            renderRecipes();
             if (harvested) {
                 showNotification('Crops harvested!');
+                // Always check achievements after a successful harvest
+                checkAchievements();
             } else {
                 showNotification('No crops to harvest!');
             }
-            checkAchievements(); // <-- always check achievements after harvest
         }
 
         // Update fulfillOrder to check achievements (if not already present)
@@ -749,6 +751,7 @@
         window.addEventListener('DOMContentLoaded', function() {
             animateProgressBar();
             renderAll();
+            checkAchievements();
         });
         // Initial render
         renderAll();
@@ -852,13 +855,14 @@
             renderStats();
             renderInventory();
             renderSellBin();
-            renderRecipes(); // <-- ensure recipes update after harvest
+            renderRecipes();
             if (harvested) {
                 showNotification('Crops harvested!');
+                // Always check achievements after a successful harvest
+                checkAchievements();
             } else {
                 showNotification('No crops to harvest!');
             }
-            checkAchievements(); // <-- always check achievements after harvest
         }
 
         // Cook a recipe if enough ingredients in inventory
@@ -919,10 +923,16 @@
         function showIntro() {
             const visited = localStorage.getItem('visited');
             if (!visited) {
-                document.getElementById('introModal').style.display = 'flex';
+                // Show Farmer Jill tutorial instead of generic intro
+                showCutscene(
+                    `<span style='font-size:32px;'>👩‍🌾</span><br><b>Farmer Jill</b><br><br>Welcome to the farm! I'm here to help you become a great farmer.<br><br>Use WASD or arrow keys to move. Plant seeds, water crops, and harvest them to earn money!`,
+                    function() {
+                        document.getElementById('introModal').style.display = 'none';
+                        renderAll();
+                    }
+                );
                 localStorage.setItem('visited', 'true');
             } else {
-                // If already visited, just render everything
                 renderAll();
             }
         }
@@ -932,6 +942,31 @@
         }
         // Show the intro modal on page load
         window.addEventListener('load', showIntro);
+
+        // Fix: Add missing animateSparkleOnPlot for grown crops
+        function animateSparkleOnPlot(plotIndex) {
+            const fieldDiv = document.getElementById('field');
+            const plotDivs = fieldDiv.querySelectorAll('.plot');
+            const plotDiv = plotDivs[plotIndex];
+            if (!plotDiv) return;
+            const sparkle = document.createElement('span');
+            sparkle.textContent = '✨';
+            sparkle.style.position = 'absolute';
+            sparkle.style.left = '50%';
+            sparkle.style.top = '10%';
+            sparkle.style.transform = 'translate(-50%, 0)';
+            sparkle.style.fontSize = '28px';
+            sparkle.style.opacity = '1';
+            sparkle.style.transition = 'top 0.7s, opacity 0.7s';
+            plotDiv.appendChild(sparkle);
+            setTimeout(() => {
+                sparkle.style.top = '-30px';
+                sparkle.style.opacity = '0';
+            }, 30);
+            setTimeout(() => {
+                sparkle.remove();
+            }, 800);
+        }
     </script>
 </body>
 </html>
