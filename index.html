@@ -307,22 +307,6 @@
             if (typeof cutsceneModal.onCloseCallback === 'function') cutsceneModal.onCloseCallback();
         }
 
-        // Add a modal for cutscenes
-        const cutsceneModal = document.createElement('div');
-        cutsceneModal.id = 'cutsceneModal';
-        cutsceneModal.style.display = 'none';
-        cutsceneModal.style.position = 'fixed';
-        cutsceneModal.style.top = '0';
-        cutsceneModal.style.left = '0';
-        cutsceneModal.style.width = '100vw';
-        cutsceneModal.style.height = '100vh';
-        cutsceneModal.style.background = 'rgba(0,0,0,0.7)';
-        cutsceneModal.style.zIndex = '10002';
-        cutsceneModal.style.alignItems = 'center';
-        cutsceneModal.style.justifyContent = 'center';
-        cutsceneModal.innerHTML = `<div id="cutsceneContent" style="background:#fff;padding:32px 24px;border-radius:12px;max-width:400px;margin:auto;text-align:center;position:relative;"></div>`;
-        document.body.appendChild(cutsceneModal);
-
         // Add a new recipe to the recipes list if not already present
         function addRecipe(recipeObj) {
             if (!recipes.some(r => r.name === recipeObj.name)) {
@@ -784,8 +768,10 @@
         // Keyboard controls for player movement (WASD only)
         document.addEventListener('keydown', function(e) {
             if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') movePlayer('left');
-            requestAnimationFrame(step);
-        }
+            if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') movePlayer('right');
+            if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') movePlayer('up');
+            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') movePlayer('down');
+        });
         // Simulate crop growth every 5 seconds
         if (typeof timerGrow !== 'undefined') clearInterval(timerGrow);
         // Shorten timer to 2 seconds for faster gameplay
