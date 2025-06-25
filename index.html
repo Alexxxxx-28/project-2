@@ -78,6 +78,22 @@
         <div id="seedMenu" style="display:none;position:absolute;background:#fff;border:1px solid #aaa;border-radius:6px;padding:6px;z-index:10;"></div>
     </div>
     <script>
+        // --- CUTSCENE MODAL CREATION (must be at the top) ---
+        const cutsceneModal = document.createElement('div');
+        cutsceneModal.id = 'cutsceneModal';
+        cutsceneModal.style.display = 'none';
+        cutsceneModal.style.position = 'fixed';
+        cutsceneModal.style.top = '0';
+        cutsceneModal.style.left = '0';
+        cutsceneModal.style.width = '100vw';
+        cutsceneModal.style.height = '100vh';
+        cutsceneModal.style.background = 'rgba(0,0,0,0.7)';
+        cutsceneModal.style.zIndex = '10002';
+        cutsceneModal.style.alignItems = 'center';
+        cutsceneModal.style.justifyContent = 'center';
+        cutsceneModal.innerHTML = `<div id="cutsceneContent" style="background:#fff;padding:32px 24px;border-radius:12px;max-width:400px;margin:auto;text-align:center;position:relative;"></div>`;
+        document.body.appendChild(cutsceneModal);
+
         // Emoji options for player
         const playerEmojis = ['🧑‍🌾','👩‍🌾','👨‍🌾','🦸','🧙','🧑‍🍳','🧑‍🚀','🧑‍🎨','🧑‍🔬','🧑‍💻','🦄','🐱','🐶','🐰','🐻','🐸'];
         // Crop definitions
@@ -280,6 +296,17 @@
             });
             document.getElementById('recipes').innerHTML = html;
         }
+
+        function showCutscene(html, onClose) {
+            document.getElementById('cutsceneContent').innerHTML = html + '<br><br><button onclick="closeCutscene()">Continue</button>';
+            cutsceneModal.style.display = 'flex';
+            cutsceneModal.onCloseCallback = onClose;
+        }
+        function closeCutscene() {
+            cutsceneModal.style.display = 'none';
+            if (typeof cutsceneModal.onCloseCallback === 'function') cutsceneModal.onCloseCallback();
+        }
+
         // Add a modal for cutscenes
         const cutsceneModal = document.createElement('div');
         cutsceneModal.id = 'cutsceneModal';
@@ -295,16 +322,6 @@
         cutsceneModal.style.justifyContent = 'center';
         cutsceneModal.innerHTML = `<div id="cutsceneContent" style="background:#fff;padding:32px 24px;border-radius:12px;max-width:400px;margin:auto;text-align:center;position:relative;"></div>`;
         document.body.appendChild(cutsceneModal);
-
-        function showCutscene(html, onClose) {
-            document.getElementById('cutsceneContent').innerHTML = html + '<br><br><button onclick="closeCutscene()">Continue</button>';
-            cutsceneModal.style.display = 'flex';
-            cutsceneModal.onCloseCallback = onClose;
-        }
-        function closeCutscene() {
-            cutsceneModal.style.display = 'none';
-            if (typeof cutsceneModal.onCloseCallback === 'function') cutsceneModal.onCloseCallback();
-        }
 
         // Add a new recipe to the recipes list if not already present
         function addRecipe(recipeObj) {
@@ -767,23 +784,6 @@
         // Keyboard controls for player movement (WASD only)
         document.addEventListener('keydown', function(e) {
             if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') movePlayer('left');
-            if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') movePlayer('right');
-            if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') movePlayer('up');
-            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') movePlayer('down');
-        });
-        // Progress bar animation
-        function animateProgressBar(duration = 3000) {
-            const bar = document.getElementById('progressBar');
-            bar.style.width = '0%';
-            let start = null;
-            function step(timestamp) {
-                if (!start) start = timestamp;
-                let progress = Math.min((timestamp - start) / duration, 1);
-                bar.style.width = (progress * 100) + '%';
-                if (progress < 1) {
-                    requestAnimationFrame(step);
-                }
-            }
             requestAnimationFrame(step);
         }
         // Simulate crop growth every 5 seconds
