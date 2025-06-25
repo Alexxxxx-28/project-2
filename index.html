@@ -210,44 +210,6 @@
             const percent = Math.max(0, Math.min(100, player.energy / player.maxEnergy * 100));
             document.getElementById('energyBar').innerHTML = `<div class='energy-bar'><div class='energy-fill' style='width:${percent}%;'></div></div>Energy: ${player.energy}/${player.maxEnergy}`;
         }
-        // Remove duplicate keydown listeners and only use one
-        // Remove the .player div rendering, only show player in the field
-        // Update renderField to show player emoji in the correct plot
-        function renderField() {
-            const oldMenu = document.getElementById('seedMenu');
-            if (oldMenu) oldMenu.remove();
-            const fieldDiv = document.getElementById('field');
-            fieldDiv.innerHTML = '';
-            // Render as a 5x5 grid
-            const cols = 5;
-            for (let row = 0; row < 5; row++) {
-                const rowDiv = document.createElement('div');
-                rowDiv.style.display = 'flex';
-                rowDiv.style.justifyContent = 'center';
-                for (let col = 0; col < cols; col++) {
-                    const i = row * cols + col;
-                    let plot = fields[currentField][i];
-                    let plotClass = 'plot empty';
-                    let emoji = '🟩';
-                    if (plot) {
-                        plotClass = `plot ${plot.type}-${plot.stage}`;
-                        if (plot.stage === 'planted') emoji = crops[plot.type].seedEmoji;
-                        else if (plot.stage === 'grown') emoji = crops[plot.type].emoji;
-                    }
-                    // Show player emoji centered in the plot if player is here
-                    let content = (i === player.pos)
-                        ? `<span style='font-size:32px;display:flex;align-items:center;justify-content:center;width:100%;height:100%;'>${player.emoji}</span>`
-                        : emoji;
-                    const plotDiv = document.createElement('div');
-                    plotDiv.className = plotClass;
-                    plotDiv.style.position = 'relative';
-                    plotDiv.innerHTML = content;
-                    plotDiv.onclick = function() { plantSeedPrompt(i); };
-                    rowDiv.appendChild(plotDiv);
-                }
-                fieldDiv.appendChild(rowDiv);
-            }
-        }
         function renderShop() {
             let html = '<h3>Seed Shop</h3>';
             Object.keys(crops).forEach(type => {
