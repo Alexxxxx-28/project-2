@@ -8,7 +8,7 @@
         body { font-family: Arial, sans-serif; background: #e6ffe6; margin: 0; padding: 0; }
         .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #aaa; padding: 24px; }
         h1 { text-align: center; }
-        .field { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; }
+        .field { display: grid; grid-template-columns: repeat(5, 60px); gap: 10px; justify-content: center; margin: 20px 0; }
         .plot { width: 60px; height: 60px; background: #b3e6b3; border: 2px solid #6c9e6c; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 24px; transition: background 0.2s; }
         .plot.empty { background: #b3e6b3; }
         .plot.wheat-planted { background: #ffe066; }
@@ -206,34 +206,26 @@
             if (oldMenu) oldMenu.remove();
             const fieldDiv = document.getElementById('field');
             fieldDiv.innerHTML = '';
-            // Render as a 5x5 grid
-            const cols = 5;
-            for (let row = 0; row < 5; row++) {
-                const rowDiv = document.createElement('div');
-                rowDiv.style.display = 'flex';
-                rowDiv.style.justifyContent = 'center';
-                for (let col = 0; col < cols; col++) {
-                    const i = row * cols + col;
-                    let plot = fields[currentField][i];
-                    let plotClass = 'plot empty';
-                    let emoji = '🟩';
-                    if (plot) {
-                        plotClass = `plot ${plot.type}-${plot.stage}`;
-                        if (plot.stage === 'planted') emoji = crops[plot.type].seedEmoji;
-                        else if (plot.stage === 'grown') emoji = crops[plot.type].emoji;
-                    }
-                    // Show player emoji centered in the plot if player is here
-                    let content = (i === player.pos)
-                        ? `<span style='font-size:32px;display:flex;align-items:center;justify-content:center;width:100%;height:100%;'>${player.emoji}</span>`
-                        : emoji;
-                    const plotDiv = document.createElement('div');
-                    plotDiv.className = plotClass;
-                    plotDiv.style.position = 'relative';
-                    plotDiv.innerHTML = content;
-                    plotDiv.onclick = function() { plantSeedPrompt(i); };
-                    rowDiv.appendChild(plotDiv);
+            // Render as a single flex-wrap grid of 25 plots
+            for (let i = 0; i < 25; i++) {
+                let plot = fields[currentField][i];
+                let plotClass = 'plot empty';
+                let emoji = '🟩';
+                if (plot) {
+                    plotClass = `plot ${plot.type}-${plot.stage}`;
+                    if (plot.stage === 'planted') emoji = crops[plot.type].seedEmoji;
+                    else if (plot.stage === 'grown') emoji = crops[plot.type].emoji;
                 }
-                fieldDiv.appendChild(rowDiv);
+                // Show player emoji centered in the plot if player is here
+                let content = (i === player.pos)
+                    ? `<span style='font-size:32px;display:flex;align-items:center;justify-content:center;width:100%;height:100%;'>${player.emoji}</span>`
+                    : emoji;
+                const plotDiv = document.createElement('div');
+                plotDiv.className = plotClass;
+                plotDiv.style.position = 'relative';
+                plotDiv.innerHTML = content;
+                plotDiv.onclick = function() { plantSeedPrompt(i); };
+                fieldDiv.appendChild(plotDiv);
             }
         }
         function renderStats() {
@@ -495,10 +487,13 @@
             // 5x5 grid, pos 0-24
             let row = Math.floor(player.pos / 5);
             let col = player.pos % 5;
-            if (direction === 'left' && col > 0) player.pos--;
-            if (direction === 'right' && col < 4) player.pos++;
-            if (direction === 'up' && row > 0) player.pos -= 5;
-            if (direction === 'down' && row < 4) player.pos += 5;
+            let newRow = row;
+            let newCol = col;
+            if (direction === 'left') newCol = Math.max(0, col - 1);
+            if (direction === 'right') newCol = Math.min(4, col + 1);
+            if (direction === 'up') newRow = Math.max(0, row - 1);
+            if (direction === 'down') newRow = Math.min(4, row + 1);
+            player.pos = newRow * 5 + newCol;
             renderField();
         }
         // --- END MOVEMENT FIX ---
