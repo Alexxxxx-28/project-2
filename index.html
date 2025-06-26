@@ -77,6 +77,23 @@
         </div>
         <div id="seedMenu" style="display:none;position:absolute;background:#fff;border:1px solid #aaa;border-radius:6px;padding:6px;z-index:10;"></div>
     </div>
+    <!-- Intro Modal for Farmer Jill -->
+    <div id="introModal" class="intro-modal" style="display:flex;">
+      <div>
+        <span style="font-size:40px;">👩‍🌾</span>
+        <h2>Hi, I'm Farmer Jill!</h2>
+        <p>Welcome to the farm! Here’s how to play:</p>
+        <ul style="text-align:left;max-width:320px;margin:0 auto 12px auto;font-size:16px;">
+          <li>Move your avatar around the field.</li>
+          <li>Plant seeds, water crops, and harvest them for money.</li>
+          <li>Buy more seeds in the shop and complete orders for rewards.</li>
+          <li>Unlock pets, recipes, and more as you play!</li>
+        </ul>
+        <p><b>Choose your avatar:</b></p>
+        <div id="avatarChoices" style="margin-bottom:16px;"></div>
+        <button id="startGameBtn" disabled>Start Farming!</button>
+      </div>
+    </div>
     <script>
         // --- CUTSCENE MODAL CREATION (must be at the top) ---
         const cutsceneModal = document.createElement('div');
@@ -909,12 +926,46 @@
             });
             cooked[recipe.name] = (cooked[recipe.name] || 0) + 1;
             cookedInventory[recipe.name] = (cookedInventory[recipe.name] || 0) + 1;
-            showNotification(`Cooked ${recipe.emoji} ${recipe.name}! (Added to inventory)`);
             renderStats();
             renderEnergyBar();
             renderInventory();
             renderSellBin();
             renderRecipes();
+            // Show modal to eat or sell
+            showCookedFoodChoice(recipe);
+        }
+
+        function showCookedFoodChoice(recipe) {
+            const modalHtml = `
+                <div style='font-size:32px;'>${recipe.emoji}</div>
+                <b>${recipe.name}</b>
+                <p>What would you like to do with your freshly cooked <b>${recipe.name}</b>?</p>
+                <button id='eatCookedBtn' style='margin:8px 0 0 0;'>Eat (+${recipe.energy} energy)</button><br>
+                <button id='sellCookedBtn' style='margin:8px 0 0 0;'>Sell (+$${recipe.price})</button>
+            `;
+            document.getElementById('cutsceneContent').innerHTML = modalHtml;
+            cutsceneModal.style.display = 'flex';
+            document.getElementById('eatCookedBtn').onclick = function() {
+                if (cookedInventory[recipe.name] > 0) {
+                    cookedInventory[recipe.name]--;
+                    player.energy = Math.min(player.maxEnergy, player.energy + recipe.energy);
+                    showNotification(`Ate ${recipe.emoji} ${recipe.name}! (+${recipe.energy} energy)`);
+                    cutsceneModal.style.display = 'none';
+                    renderEnergyBar();
+                    renderInventory();
+                }
+            };
+            document.getElementById('sellCookedBtn').onclick = function() {
+                if (cookedInventory[recipe.name] > 0) {
+                    cookedInventory[recipe.name]--;
+                    money += recipe.price;
+                    showNotification(`Sold ${recipe.emoji} ${recipe.name}! (+$${recipe.price})`);
+                    cutsceneModal.style.display = 'none';
+                    renderStats();
+                    renderInventory();
+                    renderSellBin();
+                }
+            };
         }
         function renderAvatarAndPetControls() {
             let html = '<h3>Avatar & Pet</h3>';
@@ -1032,6 +1083,36 @@
                 renderAll();
             }
         }
+        // --- INTRO MODAL LOGIC ---
+    const introModal = document.getElementById('introModal');
+    const avatarChoicesDiv = document.getElementById('avatarChoices');
+    const startGameBtn = document.getElementById('startGameBtn');
+    let selectedAvatar = null;
+    // Show avatar options
+    playerEmojis.forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.textContent = emoji;
+      btn.style.fontSize = '28px';
+      btn.onclick = function() {
+        selectedAvatar = emoji;
+        // Highlight selected
+        Array.from(avatarChoicesDiv.children).forEach(b => b.style.border = '');
+        btn.style.border = '2px solid #4caf50';
+        startGameBtn.disabled = false;
+      };
+      avatarChoicesDiv.appendChild(btn);
+    });
+    startGameBtn.onclick = function() {
+      if (selectedAvatar) {
+        player.emoji = selectedAvatar;
+        introModal.style.display = 'none';
+        renderAll();
+      }
+    };
+    // Prevent interaction with game until avatar is chosen
+    window.addEventListener('DOMContentLoaded', function() {
+      introModal.style.display = 'flex';
+    });
     </script>
 </body>
 </html>
