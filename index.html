@@ -116,10 +116,10 @@
         // Crop definitions
         const crops = {
             wheat: { name: 'Wheat', emoji: '🌾', seedEmoji: '🌱', price: 5, sell: 10, growTime: 1 },
-            carrot: { name: 'Carrot', emoji: '🥕', seedEmoji: '🌱', price: 10, sell: 20, growTime: 2 },
-            tomato: { name: 'Tomato', emoji: '🍅', seedEmoji: '🌱', price: 15, sell: 30, growTime: 3 },
-            corn: { name: 'Corn', emoji: '🌽', seedEmoji: '🌱', price: 12, sell: 25, growTime: 2 },
-            potato: { name: 'Potato', emoji: '🥔', seedEmoji: '🌱', price: 8, sell: 18, growTime: 2 },
+            carrot: { name: 'Carrot', emoji: '🥕', seedEmoji: '🌱', price: 10, sell: 20, growTime: 1 },
+            tomato: { name: 'Tomato', emoji: '🍅', seedEmoji: '🌱', price: 15, sell: 30, growTime: 1 },
+            corn: { name: 'Corn', emoji: '🌽', seedEmoji: '🌱', price: 12, sell: 25, growTime: 1 },
+            potato: { name: 'Potato', emoji: '🥔', seedEmoji: '🌱', price: 8, sell: 18, growTime: 1 },
             lettuce: { name: 'Lettuce', emoji: '🥬', seedEmoji: '🌱', price: 7, sell: 15, growTime: 1 }
         };
         // Multiple fields support
@@ -489,12 +489,15 @@
             let col = player.pos % 5;
             let newRow = row;
             let newCol = col;
-            if (direction === 'left') newCol = Math.max(0, col - 1);
-            if (direction === 'right') newCol = Math.min(4, col + 1);
-            if (direction === 'up') newRow = Math.max(0, row - 1);
-            if (direction === 'down') newRow = Math.min(4, row + 1);
-            player.pos = newRow * 5 + newCol;
-            renderField();
+            if (direction === 'left' && col > 0) newCol = col - 1;
+            else if (direction === 'right' && col < 4) newCol = col + 1;
+            else if (direction === 'up' && row > 0) newRow = row - 1;
+            else if (direction === 'down' && row < 4) newRow = row + 1;
+            // Only move if the new position is adjacent
+            if (newRow !== row || newCol !== col) {
+                player.pos = newRow * 5 + newCol;
+                renderField();
+            }
         }
         // --- END MOVEMENT FIX ---
         // --- TUTORIAL FIX ---
@@ -564,12 +567,15 @@
         };
         // --- END RESET ---
         // --- ARROW KEY SUPPORT ---
-        document.addEventListener('keydown', function(e) {
+        // Only one event listener for movement to ensure one step per key press
+        if (window._movementListener) document.removeEventListener('keydown', window._movementListener);
+        window._movementListener = function(e) {
             if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') movePlayer('left');
-            if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') movePlayer('right');
-            if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') movePlayer('up');
-            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') movePlayer('down');
-        });
+            else if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') movePlayer('right');
+            else if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') movePlayer('up');
+            else if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') movePlayer('down');
+        };
+        document.addEventListener('keydown', window._movementListener);
         // --- END ARROW KEY SUPPORT ---
         // --- ENSURE TUTORIAL ON LOAD ---
         window.addEventListener('DOMContentLoaded', function() {
@@ -778,16 +784,8 @@
             renderAvatarAndPetControls();
         }
         // Keyboard controls for player movement (WASD only)
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') movePlayer('left');
-            if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') movePlayer('right');
-            if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') movePlayer('up');
-            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') movePlayer('down');
-        });
-        // Simulate crop growth every 5 seconds
-        if (typeof timerGrow !== 'undefined') clearInterval(timerGrow);
-        // Shorten timer to 2 seconds for faster gameplay
-        timerGrow = setInterval(growCrops, 2000);
+        // (Removed duplicate event listener to prevent double movement)
+        // --- ENSURE TUTORIAL ON LOAD ---
         window.addEventListener('DOMContentLoaded', function() {
             animateProgressBar();
             showTutorial();
