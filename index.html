@@ -50,6 +50,9 @@
         <div id="notification"></div>
         <div id="fieldControls" class="field-controls"></div>
         <div id="field" class="field"></div>
+        <div style="text-align:center;margin:10px 0;">
+            <button onclick="restPlayer()" id="restBtn">Rest</button>
+        </div>
         <div id="stats" class="stats"></div>
         <div id="energyBar" class="energy-bar"></div>
         <div class="controls">
@@ -113,14 +116,15 @@
 
         // Emoji options for player
         const playerEmojis = ['🧑‍🌾','👩‍🌾','👨‍🌾','🦸','🧙','🧑‍🍳','🧑‍🚀','🧑‍🎨','🧑‍🔬','🧑‍💻','🦄','🐱','🐶','🐰','🐻','🐸'];
+        const playerEmojis = ['🧑‍🌾','👩‍🌾','👨‍🌾','🦸','🧙','🧑‍🍳','🧑‍🚀','🧑‍🎨','🧑‍🔬','🧑‍💻','🦄','🐱','🐶','🐰','🐻','🐸'];
         // Crop definitions
         const crops = {
-            wheat: { name: 'Wheat', emoji: '🌾', seedEmoji: '🌱', price: 5, sell: 10, growTime: 1 },
-            carrot: { name: 'Carrot', emoji: '🥕', seedEmoji: '🌱', price: 10, sell: 20, growTime: 1 },
-            tomato: { name: 'Tomato', emoji: '🍅', seedEmoji: '🌱', price: 15, sell: 30, growTime: 1 },
-            corn: { name: 'Corn', emoji: '🌽', seedEmoji: '🌱', price: 12, sell: 25, growTime: 1 },
-            potato: { name: 'Potato', emoji: '🥔', seedEmoji: '🌱', price: 8, sell: 18, growTime: 1 },
-            lettuce: { name: 'Lettuce', emoji: '🥬', seedEmoji: '🌱', price: 7, sell: 15, growTime: 1 }
+            wheat: { name: 'Wheat', emoji: '🌾', seedEmoji: '🌱', price: 5, sell: 10, growTime: 3 },
+            carrot: { name: 'Carrot', emoji: '🥕', seedEmoji: '🌱', price: 10, sell: 20, growTime: 3 },
+            tomato: { name: 'Tomato', emoji: '🍅', seedEmoji: '🌱', price: 15, sell: 30, growTime: 3 },
+            corn: { name: 'Corn', emoji: '🌽', seedEmoji: '🌱', price: 12, sell: 25, growTime: 3 },
+            potato: { name: 'Potato', emoji: '🥔', seedEmoji: '🌱', price: 8, sell: 18, growTime: 3 },
+            lettuce: { name: 'Lettuce', emoji: '🥬', seedEmoji: '🌱', price: 7, sell: 15, growTime: 3 }
         };
         // Multiple fields support
         const numFields = 3;
@@ -202,8 +206,15 @@
             renderAll();
         }
         function renderField() {
+            // Only remove the seed menu if the player has moved off the plot or the menu is not open for the current player position
             const oldMenu = document.getElementById('seedMenu');
-            if (oldMenu) oldMenu.remove();
+            if (oldMenu) {
+                // Check if the menu is for the current player position
+                const menuPlotIndex = oldMenu.getAttribute('data-plot-index');
+                if (menuPlotIndex === null || parseInt(menuPlotIndex) !== player.pos) {
+                    oldMenu.remove();
+                }
+            }
             const fieldDiv = document.getElementById('field');
             fieldDiv.innerHTML = '';
             // Render as a single flex-wrap grid of 25 plots
@@ -410,6 +421,7 @@
             // Create menu
             const menu = document.createElement('div');
             menu.id = 'seedMenu';
+            menu.setAttribute('data-plot-index', index);
             menu.style.position = 'absolute';
             menu.style.background = '#fff';
             menu.style.border = '1px solid #aaa';
@@ -649,232 +661,49 @@
         }
 
         // Grow crops over time (simulate growth for demo)
-        function growCrops() {
-            let anyGrown = false;
-            for (let i = 0; i < fieldSize; i++) {
-                let plot = fields[currentField][i];
-                if (plot && plot.stage === 'planted' && plot.watered) {
-                    growthTimers[currentField][i]++;
-                    if (growthTimers[currentField][i] >= crops[plot.type].growTime) {
-                        plot.stage = 'grown';
-                        plot.watered = false;
-                        animateSparkleOnPlot(i);
-                        showNotification(`${crops[plot.type].name} is fully grown!`);
-                        anyGrown = true;
+function growCrops() {
+    let anyGrown = false;
+    for (let i = 0; i < fieldSize; i++) {
+        let plot = fields[currentField][i];
+        if (plot && plot.stage === 'planted' && plot.watered) {
+            growthTimers[currentField][i]++;
+            if (growthTimers[currentField][i] >= crops[plot.type].growTime) {
+                plot.stage = 'grown';
+                plot.watered = false;
+                animateSparkleOnPlot(i);
+                showNotification(`${crops[plot.type].name} is fully grown!`);
+                anyGrown = true;
+            }
+        }
+    }
+    renderField();
+    return anyGrown;
+}
+
+// Add a global interval to grow crops every second
+typeof window._growCropsInterval !== 'undefined' && clearInterval(window._growCropsInterval);
+window._growCropsInterval = setInterval(growCrops, 1000);
+
+        // Remove old growCrops interval logic if present
+        // Add a global crop growth timer (every 1 second)
+        if (window._cropGrowthInterval) clearInterval(window._cropGrowthInterval);
+        window._cropGrowthInterval = setInterval(function() {
+            for (let f = 0; f < numFields; f++) {
+                for (let i = 0; i < fieldSize; i++) {
+                    let plot = fields[f][i];
+                    if (plot && plot.stage === 'planted' && plot.watered) {
+                        growthTimers[f][i] = (growthTimers[f][i] || 0) + 1;
+                        if (growthTimers[f][i] >= crops[plot.type].growTime) {
+                            plot.stage = 'grown';
+                            plot.watered = false;
+                            animateSparkleOnPlot && animateSparkleOnPlot(i);
+                            if (f === currentField) renderField();
+                            showNotification(`${crops[plot.type].emoji} ${crops[plot.type].name} is fully grown!`);
+                        }
                     }
                 }
             }
-            renderField();
-            return anyGrown;
-        }
-
-        // Harvest all grown crops in the current field
-        function harvestCrops() {
-            let harvested = false;
-            for (let i = 0; i < fieldSize; i++) {
-                let plot = fields[currentField][i];
-                if (plot && plot.stage === 'grown') {
-                    cropHarvestCount[plot.type] = (cropHarvestCount[plot.type] || 0) + 1;
-                    inventory[plot.type] = (inventory[plot.type] || 0) + 1;
-                    harvest++;
-                    fields[currentField][i] = null;
-                    harvested = true;
-                }
-            }
-            renderField();
-            renderStats();
-            renderInventory();
-            renderSellBin();
-            renderRecipes();
-            if (harvested) {
-                showNotification('Crops harvested!');
-                // Always check achievements after a successful harvest
-                checkAchievements();
-            } else {
-                showNotification('No crops to harvest!');
-            }
-        }
-
-        // Update fulfillOrder to check achievements (if not already present)
-        function fulfillOrder(id) {
-            const idx = orders.findIndex(o => o.id === id);
-            if (idx === -1) return;
-            const order = orders[idx];
-            if (inventory[order.type] >= order.amount) {
-                inventory[order.type] -= order.amount;
-                money += order.reward;
-                ordersFulfilled++;
-                orders.splice(idx, 1);
-                showNotification('Order fulfilled!');
-                renderStats();
-                renderOrders();
-                renderInventory();
-                renderSellBin();
-                checkAchievements();
-                // Generate a new order if none left
-                ensureOrders();
-            } else {
-                showNotification('Not enough crops to fulfill order!');
-            }
-        }
-        // Planting with energy and player position (now with selection menu)
-        function plantSeedPrompt(index) {
-            if (fields[currentField][index] || player.energy < 5 || player.pos !== index) return;
-            let options = Object.keys(crops).filter(type => seeds[type] > 0);
-            if (options.length === 0) { alert('No seeds! Buy some in the shop.'); return; }
-            // Show a menu below the plot for seed selection
-            showSeedMenu(index, options);
-        }
-        function showSeedMenu(index, options) {
-            // Remove any existing menu
-            let oldMenu = document.getElementById('seedMenu');
-            if (oldMenu) oldMenu.remove();
-            // Find the plot div
-            const fieldDiv = document.getElementById('field');
-            const plotDivs = fieldDiv.querySelectorAll('.plot');
-            const plotDiv = plotDivs[index];
-            // Create menu
-            const menu = document.createElement('div');
-            menu.id = 'seedMenu';
-            menu.style.position = 'absolute';
-            menu.style.background = '#fff';
-            menu.style.border = '1px solid #aaa';
-            menu.style.borderRadius = '6px';
-            menu.style.padding = '6px';
-            menu.style.zIndex = 10;
-            menu.style.top = (plotDiv.offsetTop + 70) + 'px';
-            menu.style.left = (plotDiv.offsetLeft - 10) + 'px';
-            options.forEach(type => {
-                const btn = document.createElement('button');
-                btn.textContent = crops[type].seedEmoji + ' ' + crops[type].name;
-                btn.onclick = function() {
-                    seeds[type]--;
-                    fields[currentField][index] = { type: type, stage: 'planted', watered: false };
-                    growthTimers[currentField][index] = 0;
-                    player.energy -= 5;
-                    menu.remove();
-                    renderField();
-                    renderStats();
-                    renderEnergyBar();
-                };
-                menu.appendChild(btn);
-            });
-            // Add cancel button
-            const cancel = document.createElement('button');
-            cancel.textContent = 'Cancel';
-            cancel.onclick = function() { menu.remove(); };
-            menu.appendChild(cancel);
-            // Add to container
-            document.querySelector('.container').appendChild(menu);
-        }
-        function renderAll() {
-            renderStats();
-            renderEnergyBar();
-            renderFieldControls();
-            renderField();
-            renderShop();
-            renderOrders();
-            renderRecipes();
-            renderAchievements();
-            renderPets();
-            renderCharacters();
-            renderCosmetics();
-            renderInventory();
-            renderSellBin();
-            renderAvatarAndPetControls();
-        }
-        // Keyboard controls for player movement (WASD only)
-        // (Removed duplicate event listener to prevent double movement)
-        // --- ENSURE TUTORIAL ON LOAD ---
-        window.addEventListener('DOMContentLoaded', function() {
-            animateProgressBar();
-            showTutorial();
-            checkAchievements();
-        });
-        // Initial render
-        renderAll();
-        function showNotification(msg) {
-            const n = document.getElementById('notification');
-            n.textContent = msg;
-            n.style.display = 'block';
-            n.style.opacity = '1';
-            setTimeout(() => { n.style.opacity = '0'; }, 1200);
-            setTimeout(() => { n.style.display = 'none'; }, 1600);
-        }
-        function buySeed(type) {
-            if (money >= crops[type].price) {
-                money -= crops[type].price;
-                seeds[type]++;
-                showNotification(`Purchased 1 ${crops[type].name} seed!`);
-                renderStats();
-                renderShop();
-            } else {
-                showNotification('Not enough money!');
-            }
-        }
-        // Water animation for each plot
-        function animateWaterDropletOnPlot(plotIndex) {
-            const fieldDiv = document.getElementById('field');
-            const plotDivs = fieldDiv.querySelectorAll('.plot');
-            const plotDiv = plotDivs[plotIndex];
-            if (!plotDiv) return;
-            const droplet = document.createElement('span');
-            droplet.textContent = '💧';
-            droplet.style.position = 'absolute';
-            droplet.style.left = '50%';
-            droplet.style.top = '10%';
-            droplet.style.transform = 'translate(-50%, 0)';
-            droplet.style.fontSize = '28px';
-            droplet.style.opacity = '1';
-            droplet.style.transition = 'top 0.7s cubic-bezier(.4,2,.6,1), opacity 0.7s';
-            plotDiv.appendChild(droplet);
-            setTimeout(() => {
-                droplet.style.top = '-30px';
-                droplet.style.opacity = '0';
-            }, 30);
-            setTimeout(() => {
-                droplet.remove();
-            }, 800);
-        }
-
-        // Water all crops in the current field
-        function waterCrops() {
-            let watered = false;
-            for (let i = 0; i < fieldSize; i++) {
-                let plot = fields[currentField][i];
-                if (plot && plot.stage === 'planted' && !plot.watered) {
-                    plot.watered = true;
-                    watered = true;
-                    animateWaterDropletOnPlot(i);
-                }
-            }
-            renderField();
-            if (watered) {
-                showNotification('Crops watered!');
-            } else {
-                showNotification('No crops to water!');
-            }
-        }
-
-        // Grow crops over time (simulate growth for demo)
-        function growCrops() {
-            let anyGrown = false;
-            for (let i = 0; i < fieldSize; i++) {
-                let plot = fields[currentField][i];
-                if (plot && plot.stage === 'planted' && plot.watered) {
-                    growthTimers[currentField][i]++;
-                    if (growthTimers[currentField][i] >= crops[plot.type].growTime) {
-                        plot.stage = 'grown';
-                        plot.watered = false;
-                        animateSparkleOnPlot(i);
-                        showNotification(`${crops[plot.type].name} is fully grown!`);
-                        anyGrown = true;
-                    }
-                }
-            }
-            renderField();
-            return anyGrown;
-        }
+        }, 1000);
 
         // Harvest all grown crops in the current field
         function harvestCrops() {
