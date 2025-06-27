@@ -50,6 +50,9 @@
         <div id="notification"></div>
         <div id="fieldControls" class="field-controls"></div>
         <div id="field" class="field"></div>
+        <div style="text-align:center;margin:10px 0;">
+            <button onclick="restPlayer()" id="restBtn">Rest</button>
+        </div>
         <div id="stats" class="stats"></div>
         <div id="energyBar" class="energy-bar"></div>
         <div class="controls">
@@ -112,6 +115,7 @@
         document.body.appendChild(cutsceneModal);
 
         // Emoji options for player
+        const playerEmojis = ['🧑‍🌾','👩‍🌾','👨‍🌾','🦸','🧙','🧑‍🍳','🧑‍🚀','🧑‍🎨','🧑‍🔬','🧑‍💻','🦄','🐱','🐶','🐰','🐻','🐸'];
         const playerEmojis = ['🧑‍🌾','👩‍🌾','👨‍🌾','🦸','🧙','🧑‍🍳','🧑‍🚀','🧑‍🎨','🧑‍🔬','🧑‍💻','🦄','🐱','🐶','🐰','🐻','🐸'];
         // Crop definitions
         const crops = {
@@ -739,21 +743,49 @@ function startRest() {
         }
 
         // Grow crops over time (simulate growth for demo)
-        function growCrops() {
-            let anyGrown = false;
-            for (let i = 0; i < fieldSize; i++) {
-                let plot = fields[currentField][i];
-                if (plot && plot.stage === 'planted' && plot.watered) {
-                    growthTimers[currentField][i]++;
-                    if (growthTimers[currentField][i] >= crops[plot.type].growTime) {
-                        plot.stage = 'grown';
-                        plot.watered = false;
-                        animateSparkleOnPlot(i);
-                        showNotification(`${crops[plot.type].name} is fully grown!`);
-                        anyGrown = true;
+function growCrops() {
+    let anyGrown = false;
+    for (let i = 0; i < fieldSize; i++) {
+        let plot = fields[currentField][i];
+        if (plot && plot.stage === 'planted' && plot.watered) {
+            growthTimers[currentField][i]++;
+            if (growthTimers[currentField][i] >= crops[plot.type].growTime) {
+                plot.stage = 'grown';
+                plot.watered = false;
+                animateSparkleOnPlot(i);
+                showNotification(`${crops[plot.type].name} is fully grown!`);
+                anyGrown = true;
+            }
+        }
+    }
+    renderField();
+    return anyGrown;
+}
+
+// Add a global interval to grow crops every second
+typeof window._growCropsInterval !== 'undefined' && clearInterval(window._growCropsInterval);
+window._growCropsInterval = setInterval(growCrops, 1000);
+
+        // Remove old growCrops interval logic if present
+        // Add a global crop growth timer (every 1 second)
+        if (window._cropGrowthInterval) clearInterval(window._cropGrowthInterval);
+        window._cropGrowthInterval = setInterval(function() {
+            for (let f = 0; f < numFields; f++) {
+                for (let i = 0; i < fieldSize; i++) {
+                    let plot = fields[f][i];
+                    if (plot && plot.stage === 'planted' && plot.watered) {
+                        growthTimers[f][i] = (growthTimers[f][i] || 0) + 1;
+                        if (growthTimers[f][i] >= crops[plot.type].growTime) {
+                            plot.stage = 'grown';
+                            plot.watered = false;
+                            animateSparkleOnPlot && animateSparkleOnPlot(i);
+                            if (f === currentField) renderField();
+                            showNotification(`${crops[plot.type].emoji} ${crops[plot.type].name} is fully grown!`);
+                        }
                     }
                 }
             }
+<<<<<<< HEAD
             renderField();
             return anyGrown;
         }
@@ -967,6 +999,9 @@ function startRest() {
             renderField();
             return anyGrown;
         }
+=======
+        }, 1000);
+>>>>>>> 2276a0061536d728ac5285374eac0ca171200a27
 
         // Harvest all grown crops in the current field
         function harvestCrops() {
