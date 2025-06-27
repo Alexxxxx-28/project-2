@@ -115,12 +115,12 @@
         const playerEmojis = ['🧑‍🌾','👩‍🌾','👨‍🌾','🦸','🧙','🧑‍🍳','🧑‍🚀','🧑‍🎨','🧑‍🔬','🧑‍💻','🦄','🐱','🐶','🐰','🐻','🐸'];
         // Crop definitions
         const crops = {
-            wheat: { name: 'Wheat', emoji: '🌾', seedEmoji: '🌱', price: 5, sell: 10, growTime: 1 },
-            carrot: { name: 'Carrot', emoji: '🥕', seedEmoji: '🌱', price: 10, sell: 20, growTime: 1 },
-            tomato: { name: 'Tomato', emoji: '🍅', seedEmoji: '🌱', price: 15, sell: 30, growTime: 1 },
-            corn: { name: 'Corn', emoji: '🌽', seedEmoji: '🌱', price: 12, sell: 25, growTime: 1 },
-            potato: { name: 'Potato', emoji: '🥔', seedEmoji: '🌱', price: 8, sell: 18, growTime: 1 },
-            lettuce: { name: 'Lettuce', emoji: '🥬', seedEmoji: '🌱', price: 7, sell: 15, growTime: 1 }
+            wheat: { name: 'Wheat', emoji: '🌾', seedEmoji: '🌱', price: 5, sell: 10, growTime: 3 },
+            carrot: { name: 'Carrot', emoji: '🥕', seedEmoji: '🌱', price: 10, sell: 20, growTime: 3 },
+            tomato: { name: 'Tomato', emoji: '🍅', seedEmoji: '🌱', price: 15, sell: 30, growTime: 3 },
+            corn: { name: 'Corn', emoji: '🌽', seedEmoji: '🌱', price: 12, sell: 25, growTime: 3 },
+            potato: { name: 'Potato', emoji: '🥔', seedEmoji: '🌱', price: 8, sell: 18, growTime: 3 },
+            lettuce: { name: 'Lettuce', emoji: '🥬', seedEmoji: '🌱', price: 7, sell: 15, growTime: 3 }
         };
         // Multiple fields support
         const numFields = 3;
@@ -202,8 +202,15 @@
             renderAll();
         }
         function renderField() {
+            // Only remove the seed menu if the player has moved off the plot or the menu is not open for the current player position
             const oldMenu = document.getElementById('seedMenu');
-            if (oldMenu) oldMenu.remove();
+            if (oldMenu) {
+                // Check if the menu is for the current player position
+                const menuPlotIndex = oldMenu.getAttribute('data-plot-index');
+                if (menuPlotIndex === null || parseInt(menuPlotIndex) !== player.pos) {
+                    oldMenu.remove();
+                }
+            }
             const fieldDiv = document.getElementById('field');
             fieldDiv.innerHTML = '';
             // Render as a single flex-wrap grid of 25 plots
@@ -410,6 +417,7 @@
             // Create menu
             const menu = document.createElement('div');
             menu.id = 'seedMenu';
+            menu.setAttribute('data-plot-index', index);
             menu.style.position = 'absolute';
             menu.style.background = '#fff';
             menu.style.border = '1px solid #aaa';
@@ -453,10 +461,23 @@
         }
         function renderSellBin() {
             let html = '<h3>Sell Bin</h3>';
-            html += '<div style="color:#888;">(Sell bin feature coming soon!)</div>';
+            let hasCrops = false;
+            html += '<div style="margin-bottom:8px;">Sell your harvested crops for money!</div>';
+            Object.keys(inventory).forEach(type => {
+                if (inventory[type] > 0) {
+                    hasCrops = true;
+                    html += `<div style='margin-bottom:6px;'>${crops[type].emoji} <b>${crops[type].name}</b>: ${inventory[type]} 
+                        <input type='number' id='sellQty_${type}' min='1' max='${inventory[type]}' value='1' style='width:50px;'>
+                        <button onclick="sellCrop('${type}')">Sell ($${crops[type].sell} each)</button></div>`;
+                }
+            });
+            if (!hasCrops) {
+                html += '<div style="color:#888;">No crops to sell!</div>';
+            }
             const el = document.getElementById('sellBin');
             if (el) {
                 el.innerHTML = html;
+                el.style.display = 'block';
             } else {
                 // If the element doesn't exist, create it
                 const div = document.createElement('div');
@@ -466,6 +487,73 @@
                 document.querySelector('.container').appendChild(div);
             }
         }
+        // Add sellCrop function
+        typeof window.sellCrop !== 'undefined' && (window.sellCrop = undefined);
+        function sellCrop(type) {
+            const qtyInput = document.getElementById('sellQty_' + type);
+            let qty = parseInt(qtyInput.value);
+            if (isNaN(qty) || qty < 1) qty = 1;
+            if (qty > inventory[type]) qty = inventory[type];
+            if (qty < 1) return;
+            inventory[type] -= qty;
+            money += qty * crops[type].sell;
+            showNotification(`Sold ${qty} ${crops[type].emoji} ${crops[type].name} for $${qty * crops[type].sell}!`);
+            renderStats();
+            renderInventory();
+            renderSellBin();
+        }
+        // Update Show Sell Bin button to toggle sell bin visibility
+        function showSellBin() {
+            const el = document.getElementById('sellBin');
+            if (el && el.style.display !== 'none') {
+                el.style.display = 'none';
+            } else {
+                renderSellBin();
+                if (el) el.style.display = 'block';
+            }
+        }
+        // Add Rest button to controls
+function renderRestButton() {
+    let html = '<button id="restBtn" onclick="startRest()">Rest (6 sec)</button>';
+    html += '<span id="restCountdown" style="margin-left:12px;color:#888;font-size:15px;"></span>';
+    const controls = document.querySelectorAll('.controls')[0];
+    if (controls && !document.getElementById('restBtn')) {
+        controls.insertAdjacentHTML('beforeend', html);
+    }
+}
+// Add rest logic
+typeof window._restTimeout !== 'undefined' && clearTimeout(window._restTimeout);
+typeof window._restInterval !== 'undefined' && clearInterval(window._restInterval);
+let isResting = false;
+function startRest() {
+    if (isResting) return;
+    isResting = true;
+    const restBtn = document.getElementById('restBtn');
+    const restCountdown = document.getElementById('restCountdown');
+    if (restBtn) restBtn.disabled = true;
+    let seconds = 6; // Changed from 6 * 60 to 6 seconds
+    function updateCountdown() {
+        let min = Math.floor(seconds / 60);
+        let sec = seconds % 60;
+        restCountdown.textContent = `Resting: ${min}:${sec.toString().padStart(2, '0')}`;
+    }
+    updateCountdown();
+    window._restInterval = setInterval(() => {
+        seconds--;
+        updateCountdown();
+        if (seconds <= 0) {
+            clearInterval(window._restInterval);
+        }
+    }, 1000);
+    window._restTimeout = setTimeout(() => {
+        isResting = false;
+        player.energy = player.maxEnergy;
+        showNotification('You feel fully rested! Energy restored.');
+        if (restBtn) restBtn.disabled = false;
+        if (restCountdown) restCountdown.textContent = '';
+        renderEnergyBar();
+    }, 6000); // 6 seconds
+}
         function renderAll() {
             renderStats();
             renderEnergyBar();
@@ -481,6 +569,7 @@
             renderInventory();
             renderSellBin();
             renderAvatarAndPetControls();
+            renderRestButton();
         }
         // --- MOVEMENT FIX ---
         function movePlayer(direction) {
@@ -582,6 +671,7 @@
             animateProgressBar();
             showTutorial();
             checkAchievements();
+            renderRestButton();
         });
         // Initial render
         renderAll();
@@ -736,6 +826,7 @@
             // Create menu
             const menu = document.createElement('div');
             menu.id = 'seedMenu';
+            menu.setAttribute('data-plot-index', index);
             menu.style.position = 'absolute';
             menu.style.background = '#fff';
             menu.style.border = '1px solid #aaa';
@@ -782,6 +873,7 @@
             renderInventory();
             renderSellBin();
             renderAvatarAndPetControls();
+            renderRestButton();
         }
         // Keyboard controls for player movement (WASD only)
         // (Removed duplicate event listener to prevent double movement)
@@ -1106,6 +1198,9 @@
     window.addEventListener('DOMContentLoaded', function() {
       introModal.style.display = 'flex';
     });
+    // Add a global interval to grow crops every second
+    if (window._growCropsInterval) clearInterval(window._growCropsInterval);
+    window._growCropsInterval = setInterval(growCrops, 1000);
     </script>
 </body>
 </html>
